@@ -344,7 +344,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
         override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
             init()
-            GLES31.glClearColor(1.0f, 0f, 0f, 1f)
+            GLES31.glClearColor(0.0f, 0f, 0f, 1f)
         }
 
         override fun onDrawFrame(gl: GL10?) {
