@@ -219,7 +219,9 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             thread(name = "Blur FPS Monitor", isDaemon = true) {
                 while (monitorFpsBg) {
                     Thread.sleep(1000)
-                    Timber.i("Off-screen avg frame time: ${calcFrameTimeMs()} ms")
+                    if (renderOffscreen) {
+                        Timber.i("Off-screen avg frame time: ${calcFrameTimeMs()} ms")
+                    }
                     resetFrameProfiling()
                 }
             }
@@ -238,7 +240,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             val frameTimeMs = calcFrameTimeMs()
 
             Timber.i("================ PROFILING FINISHED ================")
-            Timber.i("Profiling finished, avg frame time: $frameTimeMs ms")
+            Timber.i("Average frame time: $frameTimeMs ms")
             Timber.i("================ PROFILING FINISHED ================")
 
             // Restart background monitor
@@ -247,6 +249,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
             // Allow user to read profiling log first
             Thread.sleep(5000)
+            systemUnboost()
             startFpsMonitor()
         }
 
