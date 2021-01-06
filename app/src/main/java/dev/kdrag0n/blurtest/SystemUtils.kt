@@ -2,11 +2,17 @@ package dev.kdrag0n.blurtest
 
 import com.topjohnwu.superuser.Shell
 
-fun systemBoost() {
+fun systemBoost(cb: () -> Unit = {}) {
     // Lock GPU and CPU frequencies, affine to prime cluster, freeze power HAL
     Shell.su(
         "settings put global airplane_mode_on 1",
         "am broadcast -a android.intent.action.AIRPLANE_MODE --ez state true",
+        """
+            for p in $(pm list packages --user 0 -3 | grep -v dev.kdrag0n.blurtest | sed 's/package://g')
+            do
+                pm suspend --user 0 ${'$'}p
+            done
+        """.trimIndent(),
         "sleep 1",
         """
             pwr_pid="$(ps -A | grep libperfmgr | awk '{print ${'$'}2}')"
@@ -37,11 +43,17 @@ fun systemBoost() {
                 chrt -fp ${'$'}p 10
             done
         """.trimIndent()
-    ).submit()
+    ).submit { cb() }
 }
 
-fun systemUnboost() {
+fun systemUnboost(cb: () -> Unit = {}) {
     Shell.su(
+        """
+            for p in $(pm list packages --user 0 -3 | grep -v dev.kdrag0n.blurtest | sed 's/package://g')
+            do
+                pm unsuspend --user 0 ${'$'}p
+            done
+        """.trimIndent(),
         "echo 3 > /sys/class/kgsl/kgsl-3d0/min_pwrlevel",
         "echo 0 > /sys/class/kgsl/kgsl-3d0/max_pwrlevel",
         "echo 0 > /sys/class/kgsl/kgsl-3d0/force_rail_on",
@@ -69,5 +81,5 @@ fun systemUnboost() {
                 chrt -op ${'$'}p 0
             done
         """.trimIndent()
-    ).submit()
+    ).submit { cb() }
 }

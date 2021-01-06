@@ -232,25 +232,29 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             monitorFpsBg = false
             renderOffscreen = true
             listenTouch = false
-            Thread.sleep(5000)
-            Timber.i("Starting auto-profile routine")
 
-            // Sample
-            Thread.sleep(25000)
-            val frameTimeMs = calcFrameTimeMs()
+            Timber.i("Preparing to profile")
+            systemBoost {
+                Thread.sleep(5000)
+                Timber.i("Starting auto-profile rendering")
 
-            Timber.i("================ PROFILING FINISHED ================")
-            Timber.i("Average frame time: $frameTimeMs ms")
-            Timber.i("================ PROFILING FINISHED ================")
+                // Sample
+                Thread.sleep(25000)
+                val frameTimeMs = calcFrameTimeMs()
 
-            // Restart background monitor
-            monitorFpsBg = true
-            listenTouch = true
+                Timber.i("================ PROFILING FINISHED ================")
+                Timber.i("Average frame time: $frameTimeMs ms")
+                Timber.i("================ PROFILING FINISHED ================")
 
-            // Allow user to read profiling log first
-            Thread.sleep(5000)
-            systemUnboost()
-            startFpsMonitor()
+                // Restart background monitor
+                monitorFpsBg = true
+                listenTouch = true
+
+                // Allow user to read profiling log first
+                Thread.sleep(5000)
+                systemUnboost()
+                startFpsMonitor()
+            }
         }
 
         private fun prepareBuffers(width: Int, height: Int) {
