@@ -45,8 +45,8 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         if (listenTouch) {
             when (event?.action) {
                 MotionEvent.ACTION_UP -> {
-                    Timber.i("Toggle render offscreen => $renderOffscreen")
                     renderOffscreen = !renderOffscreen
+                    Timber.i("Toggle render offscreen => $renderOffscreen")
                 }
             }
         }
