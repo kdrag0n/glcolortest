@@ -235,7 +235,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
             Timber.i("Preparing to profile")
             systemBoost {
-                Thread.sleep(5000)
+                Thread.sleep(15000)
                 Timber.i("Starting auto-profile rendering")
 
                 // Sample
@@ -249,9 +249,6 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
                 // Restart background monitor
                 monitorFpsBg = true
                 listenTouch = true
-
-                // Allow user to read profiling log first
-                Thread.sleep(5000)
                 systemUnboost {
                     Timber.i("Cleaned up system profiling state")
                     startFpsMonitor()

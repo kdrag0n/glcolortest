@@ -16,8 +16,10 @@ fun systemBoost(cb: () -> Unit = {}) {
         """.trimIndent(),
         "sleep 1",
         """
-            pwr_pid="$(ps -A | grep libperfmgr | awk '{print ${'$'}2}')"
-            echo "${'$'}pwr_pid" > /sys/fs/cgroup/freezer/cgroup.procs
+            for p in $(ps -A | grep -e com.google.android.gms -e libperfmgr | awk '{print ${'$'}2}')
+            do
+                echo "${'$'}p" > /sys/fs/cgroup/freezer/cgroup.procs
+            done
         """.trimIndent(),
         "sleep 0.25",
         "echo 1 > /sys/class/kgsl/kgsl-3d0/min_pwrlevel",
@@ -70,9 +72,11 @@ fun systemUnboost(cb: () -> Unit = {}) {
         "echo schedutil > /sys/devices/system/cpu/cpufreq/policy7/scaling_governor",
         "echo 10 > /dev/stune/top-app/schedtune.boost",
         "echo 0 > /dev/stune/top-app/schedtune.prefer_high_cap",
-        """
-            pwr_pid="$(ps -A | grep libperfmgr | awk '{print ${'$'}2}')"
-            echo "${'$'}pwr_pid" > /sys/fs/cgroup/cgroup.procs
+            """
+            for p in $(ps -A | grep -e com.google.android.gms -e libperfmgr | awk '{print ${'$'}2}')
+            do
+                echo "${'$'}p" > /sys/fs/cgroup/cgroup.procs
+            done
         """.trimIndent(),
         """
             main_pid="$(ps -A | grep dev.kdrag0n.blurtest | awk '{print ${'$'}2}')"
