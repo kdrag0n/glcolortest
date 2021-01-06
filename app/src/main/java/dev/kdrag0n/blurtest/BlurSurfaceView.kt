@@ -6,6 +6,7 @@ import android.graphics.Bitmap
 import android.opengl.GLES31
 import android.opengl.GLSurfaceView
 import android.util.Log
+import android.view.MotionEvent
 import timber.log.Timber
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -22,10 +23,21 @@ import kotlin.math.pow
 @SuppressLint("ViewConstructor")
 class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private val noiseBitmap: Bitmap) : GLSurfaceView(context) {
     private val renderer = BlurRenderer()
+    @Volatile private var renderOffscreen = false
 
     init {
         setEGLContextClientVersion(3)
         setRenderer(renderer)
+    }
+
+    override fun onTouchEvent(event: MotionEvent?): Boolean {
+        when (event?.action) {
+            MotionEvent.ACTION_UP -> {
+                Timber.i("Render offscreen: $renderOffscreen")
+                renderOffscreen = !renderOffscreen
+            }
+        }
+        return true
     }
 
     inner class BlurRenderer : Renderer {
@@ -178,7 +190,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         @SuppressLint("LogNotTimber")
         private fun monitorFps() {
             while (true) {
-                Log.i("BlurFPS", "Off-screen FPS: $framesRenderedOffscreen")
+                Log.i("BlurFPS", "Off-screen render FPS: $framesRenderedOffscreen")
                 framesRenderedOffscreen = 0
                 Thread.sleep(1000)
             }
@@ -348,14 +360,18 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         }
 
         override fun onDrawFrame(gl: GL10?) {
-            // We need to render 3 frames for triple-buffering, otherwise the display flickers
-            if (framesRenderedDisplay < 3) {
+            if (!renderOffscreen) {
                 drawFrame(0)
                 framesRenderedDisplay++
+
+                // We need to render 3 frames for triple-buffering, otherwise the display flickers
+                if (framesRenderedDisplay == 3) {
+                    renderOffscreen = true
+                }
             } else {
                 // Render off-screen after this for profiling
                 // We never return after this point as we're in a tight FPS measurement loop.
-                while (true) {
+                while (renderOffscreen) {
                     drawFrame(mFinalFbo.framebuffer)
                     GLES31.glFinish()
                     framesRenderedOffscreen++
