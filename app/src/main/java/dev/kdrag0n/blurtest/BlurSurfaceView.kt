@@ -357,10 +357,10 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
                 // We never return after this point as we're in a tight FPS measurement loop.
                 while (true) {
                     drawFrame(mFinalFbo.framebuffer)
+                    GLES31.glFinish()
                     framesRenderedOffscreen++
                 }
             }
-
         }
 
         override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
