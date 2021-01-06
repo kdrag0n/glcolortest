@@ -5,7 +5,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.opengl.GLES31
 import android.opengl.GLSurfaceView
-import android.util.Log
+import android.os.SystemClock
 import android.view.MotionEvent
 import timber.log.Timber
 import java.nio.ByteBuffer
@@ -16,6 +16,15 @@ import kotlin.concurrent.thread
 import kotlin.math.min
 import kotlin.math.pow
 
+// Do not enable for profiling
+private const val DEBUG = false
+
+private fun logDebug(msg: String) {
+    if (DEBUG) {
+        Timber.d(msg)
+    }
+}
+
 /**
  * This is an implementation of dual-filtered Kawase blur, as described in here:
  * https://community.arm.com/cfs-file/__key/communityserver-blogs-components-weblogfiles/00-00-00-20-66/siggraph2015_2D00_mmg_2D00_marius_2D00_notes.pdf
@@ -24,19 +33,24 @@ import kotlin.math.pow
 class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private val noiseBitmap: Bitmap) : GLSurfaceView(context) {
     private val renderer = BlurRenderer()
     @Volatile private var renderOffscreen = false
+    @Volatile private var listenTouch = true
 
     init {
         setEGLContextClientVersion(3)
         setRenderer(renderer)
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent?): Boolean {
-        when (event?.action) {
-            MotionEvent.ACTION_UP -> {
-                Timber.i("Render offscreen: $renderOffscreen")
-                renderOffscreen = !renderOffscreen
+        if (listenTouch) {
+            when (event?.action) {
+                MotionEvent.ACTION_UP -> {
+                    Timber.i("Toggle render offscreen => $renderOffscreen")
+                    renderOffscreen = !renderOffscreen
+                }
             }
         }
+
         return true
     }
 
@@ -88,14 +102,20 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         private lateinit var mPassFbos: List<GLFramebuffer>
         private lateinit var mLastDrawTarget: GLFramebuffer
 
+        // Blur state
         private var mRadius = 0
         private var mPasses = 0
         private var mOffset = 1.0f
 
+        // Misc state
         private var mWidth = 0
         private var mHeight = 0
+
+        // Profiling
         private var framesRenderedDisplay = 0
-        @Volatile private var framesRenderedOffscreen = 0
+        @Volatile private var monitorFpsBg = true
+        @Volatile private var totalRenderNanos = 0L
+        @Volatile private var totalRenderFrames = 0
 
         private fun init() {
             val size = 2.0f
@@ -182,18 +202,52 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
             GLES31.glUseProgram(0)
 
+            startFpsMonitor()
+        }
+
+        private fun calcFrameTimeMs(): Double {
+            // TODO: moving average
+            return (totalRenderNanos.toDouble() / 1e6) / totalRenderFrames.toDouble()
+        }
+
+        private fun resetFrameProfiling() {
+            totalRenderNanos = 0L
+            totalRenderFrames = 0
+        }
+
+        private fun startFpsMonitor() {
             thread(name = "Blur FPS Monitor", isDaemon = true) {
-                monitorFps()
+                while (monitorFpsBg) {
+                    Thread.sleep(1000)
+                    Timber.i("Off-screen avg frame time: ${calcFrameTimeMs()} ms")
+                    resetFrameProfiling()
+                }
             }
         }
 
-        @SuppressLint("LogNotTimber")
-        private fun monitorFps() {
-            while (true) {
-                Log.i("BlurFPS", "Off-screen render FPS: $framesRenderedOffscreen")
-                framesRenderedOffscreen = 0
-                Thread.sleep(1000)
-            }
+        private fun autoProfile() {
+            // Stop background monitor and wait
+            monitorFpsBg = false
+            renderOffscreen = true
+            listenTouch = false
+            Thread.sleep(5000)
+            Timber.i("Starting auto-profile routine")
+
+            // Sample
+            Thread.sleep(15000)
+            val frameTimeMs = calcFrameTimeMs()
+
+            Timber.i("================ PROFILING FINISHED ================")
+            Timber.i("Profiling finished, avg frame time: $frameTimeMs ms")
+            Timber.i("================ PROFILING FINISHED ================")
+
+            // Restart background monitor
+            monitorFpsBg = true
+            listenTouch = true
+
+            // Allow user to read profiling log first
+            Thread.sleep(5000)
+            startFpsMonitor()
         }
 
         private fun prepareBuffers(width: Int, height: Int) {
@@ -237,7 +291,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
         // Execute blur passes, rendering to offscreen texture.
         private fun renderPass(read: GLFramebuffer, draw: GLFramebuffer, halfPixelLoc: Int, vertexArray: Int) {
-            Timber.i("blur to ${draw.width}x${draw.height}")
+            logDebug("blur to ${draw.width}x${draw.height}")
 
             GLES31.glViewport(0, 0, draw.width, draw.height)
             GLES31.glBindTexture(GLES31.GL_TEXTURE_2D, read.texture)
@@ -280,7 +334,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
                 GLES31.GL_COLOR_BUFFER_BIT, GLES31.GL_LINEAR
             )
 
-            Timber.i("Prepare - initial dims ${draw.width}x${draw.height}")
+            logDebug("Prepare - initial dims ${draw.width}x${draw.height}")
 
             // Downsample
             GLES31.glUseProgram(mDownsampleProgram)
@@ -316,7 +370,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
                 GLES31.glUseProgram(mMixProgram)
                 GLES31.glUniform1f(mMBlurOpacityLoc, opacity)
             }
-            Timber.i("render - layers=$layers current=$currentLayer dither=${currentLayer == layers - 1}")
+            logDebug("render - layers=$layers current=$currentLayer dither=${currentLayer == layers - 1}")
 
             GLES31.glActiveTexture(GLES31.GL_TEXTURE0)
             GLES31.glBindTexture(GLES31.GL_TEXTURE_2D, mCompositionFbo.texture)
@@ -367,14 +421,20 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
                 // We need to render 3 frames for triple-buffering, otherwise the display flickers
                 if (framesRenderedDisplay == 3) {
                     renderOffscreen = true
+                    thread(name = "Auto Profile", isDaemon = true) {
+                        autoProfile()
+                    }
                 }
             } else {
                 // Render off-screen after this for profiling
                 // We never return after this point as we're in a tight FPS measurement loop.
                 while (renderOffscreen) {
+                    val before = SystemClock.elapsedRealtimeNanos()
                     drawFrame(mFinalFbo.framebuffer)
                     GLES31.glFinish()
-                    framesRenderedOffscreen++
+                    val after = SystemClock.elapsedRealtimeNanos()
+                    totalRenderNanos += after - before
+                    totalRenderFrames++
                 }
             }
         }

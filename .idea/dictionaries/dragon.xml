@@ -6,6 +6,7 @@
       <w>fbos</w>
       <w>gles</w>
       <w>passthrough</w>
+      <w>taskset</w>
       <w>upsample</w>
       <w>upsampling</w>
     </words>
