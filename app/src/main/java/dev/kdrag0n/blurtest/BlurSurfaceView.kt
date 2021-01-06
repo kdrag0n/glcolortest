@@ -85,7 +85,6 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         private var framesRenderedDisplay = 0
         @Volatile private var framesRenderedOffscreen = 0
 
-        @SuppressLint("LogNotTimber")
         private fun init() {
             val size = 2.0f
             val translation = 1.0f
@@ -171,12 +170,17 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
             GLES31.glUseProgram(0)
 
-            thread {
-                while (true) {
-                    Log.i("BlurFPS", "Off-screen FPS: $framesRenderedOffscreen")
-                    framesRenderedOffscreen = 0
-                    Thread.sleep(1000)
-                }
+            thread(name = "Blur FPS Monitor", isDaemon = true) {
+                monitorFps()
+            }
+        }
+
+        @SuppressLint("LogNotTimber")
+        private fun monitorFps() {
+            while (true) {
+                Log.i("BlurFPS", "Off-screen FPS: $framesRenderedOffscreen")
+                framesRenderedOffscreen = 0
+                Thread.sleep(1000)
             }
         }
 
