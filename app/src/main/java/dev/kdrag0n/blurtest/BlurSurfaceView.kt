@@ -348,7 +348,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         }
 
         override fun onDrawFrame(gl: GL10?) {
-            // First frame must render to display for visual feedback
+            // We need to render 3 frames for triple-buffering, otherwise the display flickers
             if (framesRenderedDisplay < 3) {
                 drawFrame(0)
                 framesRenderedDisplay++
