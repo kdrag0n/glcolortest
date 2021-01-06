@@ -1,14 +1,17 @@
 package dev.kdrag0n.blurtest
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
 import android.opengl.GLES31
 import android.opengl.GLSurfaceView
+import android.util.Log
 import timber.log.Timber
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
+import kotlin.concurrent.thread
 import kotlin.math.min
 import kotlin.math.pow
 
@@ -16,6 +19,7 @@ import kotlin.math.pow
  * This is an implementation of dual-filtered Kawase blur, as described in here:
  * https://community.arm.com/cfs-file/__key/communityserver-blogs-components-weblogfiles/00-00-00-20-66/siggraph2015_2D00_mmg_2D00_marius_2D00_notes.pdf
  */
+@SuppressLint("ViewConstructor")
 class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private val noiseBitmap: Bitmap) : GLSurfaceView(context) {
     private val renderer = BlurRenderer()
 
@@ -65,6 +69,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         private var mUHalfPixelLoc = 0
         private var mUVertexArray = 0
 
+        private lateinit var mFinalFbo: GLFramebuffer
         private lateinit var mBackgroundFbo: GLFramebuffer
         private lateinit var mDitherFbo: GLFramebuffer
         private lateinit var mCompositionFbo: GLFramebuffer
@@ -77,8 +82,13 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
         private var mWidth = 0
         private var mHeight = 0
+        private var framesRenderedDisplay = 0
+        @Volatile private var framesRenderedOffscreen = 0
 
+        @SuppressLint("LogNotTimber")
         private fun init() {
+            val size = 2.0f
+            val translation = 1.0f
             val vboData = floatArrayOf(
                 // Position                              // UV
                 translation - size, -translation - size, 0.0f, 0.0f - translation,
@@ -160,6 +170,14 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             GLES31.glUniform1i(mMDitherTextureLoc, 2)
 
             GLES31.glUseProgram(0)
+
+            thread {
+                while (true) {
+                    Log.i("BlurFPS", "Off-screen FPS: $framesRenderedOffscreen")
+                    framesRenderedOffscreen = 0
+                    Thread.sleep(1000)
+                }
+            }
         }
 
         private fun prepareBuffers(width: Int, height: Int) {
@@ -301,12 +319,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             GLUtils.checkErrors()
         }
 
-        override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
-            init()
-            GLES31.glClearColor(1.0f, 0f, 0f, 1f)
-        }
-
-        override fun onDrawFrame(gl: GL10?) {
+        private fun drawFrame(fbId: Int) {
             // Render background
             setAsDrawTarget(mWidth, mHeight, 120)
             GLES31.glUseProgram(mPassthroughProgram)
@@ -318,20 +331,45 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
             // Blur
             prepare()
-            GLES31.glBindFramebuffer(GLES31.GL_FRAMEBUFFER, 0)
+
+            // Mix and dither out
+            GLES31.glBindFramebuffer(GLES31.GL_FRAMEBUFFER, fbId)
             GLES31.glViewport(0, 0, mWidth, mHeight)
             render(1, 0)
         }
 
+        override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
+            init()
+            GLES31.glClearColor(1.0f, 0f, 0f, 1f)
+        }
+
+        override fun onDrawFrame(gl: GL10?) {
+            // First frame must render to display for visual feedback
+            if (framesRenderedDisplay < 3) {
+                drawFrame(0)
+                framesRenderedDisplay++
+            } else {
+                // Render off-screen after this for profiling
+                // We never return after this point as we're in a tight FPS measurement loop.
+                while (true) {
+                    drawFrame(mFinalFbo.framebuffer)
+                    framesRenderedOffscreen++
+                }
+            }
+
+        }
+
         override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
             setAsDrawTarget(width, height, 120)
+            mFinalFbo = GLFramebuffer(
+                width, height, null,
+                GLES31.GL_LINEAR, GLES31.GL_CLAMP_TO_EDGE,
+                GLES31.GL_RGB8, GLES31.GL_RGB, GLES31.GL_UNSIGNED_BYTE
+            )
         }
     }
 
     companion object {
-        const val size = 2.0f
-        const val translation = 1.0f
-
         // Downsample FBO to improve performance
         private const val kFboScale = 0.2f
         // We allocate FBOs for this many passes to avoid the overhead of dynamic allocation.

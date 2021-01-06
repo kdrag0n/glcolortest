@@ -6,14 +6,14 @@ import java.nio.Buffer
 
 class GLFramebuffer(val width: Int, val height: Int, data: Buffer? = null, filter: Int = GLES31.GL_LINEAR, wrap: Int = GLES31.GL_CLAMP_TO_EDGE, internalformat: Int = GLES31.GL_RGB, format: Int = GLES31.GL_RGB, type: Int = GLES31.GL_UNSIGNED_BYTE) {
     val texture: Int
-    private val fb: Int
+    val framebuffer: Int
 
     init {
         val buf = IntArray(2)
         GLES31.glGenTextures(1, buf, 0)
         GLES31.glGenFramebuffers(1, buf, 1)
         texture = buf[0]
-        fb = buf[1]
+        framebuffer = buf[1]
 
         GLES31.glBindTexture(GLES31.GL_TEXTURE_2D, texture)
         GLES31.glTexImage2D(GLES31.GL_TEXTURE_2D, 0, internalformat, width, height, 0, format, type, data)
@@ -35,15 +35,15 @@ class GLFramebuffer(val width: Int, val height: Int, data: Buffer? = null, filte
     }
 
     fun bind() {
-        GLES31.glBindFramebuffer(GLES31.GL_FRAMEBUFFER, fb)
+        GLES31.glBindFramebuffer(GLES31.GL_FRAMEBUFFER, framebuffer)
     }
 
     fun bindAsReadBuffer() {
-        GLES31.glBindFramebuffer(GLES31.GL_READ_FRAMEBUFFER, fb)
+        GLES31.glBindFramebuffer(GLES31.GL_READ_FRAMEBUFFER, framebuffer)
     }
 
     fun bindAsDrawBuffer() {
-        GLES31.glBindFramebuffer(GLES31.GL_DRAW_FRAMEBUFFER, fb)
+        GLES31.glBindFramebuffer(GLES31.GL_DRAW_FRAMEBUFFER, framebuffer)
     }
 
     fun unbind() {
