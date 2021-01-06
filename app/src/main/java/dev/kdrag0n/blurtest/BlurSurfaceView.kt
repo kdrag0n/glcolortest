@@ -236,7 +236,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             Timber.i("Starting auto-profile routine")
 
             // Sample
-            Thread.sleep(15000)
+            Thread.sleep(25000)
             val frameTimeMs = calcFrameTimeMs()
 
             Timber.i("================ PROFILING FINISHED ================")
