@@ -11,6 +11,7 @@ fun systemBoost(cb: () -> Unit = {}) {
             for p in $(pm list packages --user 0 -3 | grep -v dev.kdrag0n.blurtest | sed 's/package://g')
             do
                 pm suspend --user 0 ${'$'}p
+                am force-stop --user 0 ${'$'}p
             done
         """.trimIndent(),
         "sleep 1",

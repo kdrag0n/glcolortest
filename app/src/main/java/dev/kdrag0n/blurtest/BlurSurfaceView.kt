@@ -252,8 +252,10 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
                 // Allow user to read profiling log first
                 Thread.sleep(5000)
-                systemUnboost()
-                startFpsMonitor()
+                systemUnboost {
+                    Timber.i("Cleaned up system profiling state")
+                    startFpsMonitor()
+                }
             }
         }
 
