@@ -94,7 +94,6 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         private var mDUvLoc = 0
         private var mDTextureLoc = 0
         private var mDHalfPixelLoc = 0
-        private var mDOffsetLoc = 0
         private var mDVertexArray = 0
 
         private var mUpsampleProgram = 0
@@ -102,7 +101,6 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         private var mUUvLoc = 0
         private var mUTextureLoc = 0
         private var mUHalfPixelLoc = 0
-        private var mUOffsetLoc = 0
         private var mUVertexArray = 0
 
         private lateinit var mFinalFbo: GLFramebuffer
@@ -172,7 +170,6 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             mDUvLoc = GLES31.glGetAttribLocation(mDownsampleProgram, "aUV")
             mDTextureLoc = GLES31.glGetUniformLocation(mDownsampleProgram, "uTexture")
             mDHalfPixelLoc = GLES31.glGetUniformLocation(mDownsampleProgram, "uHalfPixel")
-            mDOffsetLoc = GLES31.glGetUniformLocation(mDownsampleProgram, "uOffset")
             mDVertexArray = GLUtils.createVertexArray(mMeshBuffer, mDPosLoc, mDUvLoc)
 
             mUpsampleProgram = GLUtils.createProgram(VERTEX_SHADER, UPSAMPLE_FRAG_SHADER)
@@ -180,7 +177,6 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             mUUvLoc = GLES31.glGetAttribLocation(mUpsampleProgram, "aUV")
             mUTextureLoc = GLES31.glGetUniformLocation(mUpsampleProgram, "uTexture")
             mUHalfPixelLoc = GLES31.glGetUniformLocation(mUpsampleProgram, "uHalfPixel")
-            mUOffsetLoc = GLES31.glGetUniformLocation(mUpsampleProgram, "uOffset")
             mUVertexArray = GLUtils.createVertexArray(mMeshBuffer, mUPosLoc, mUUvLoc)
 
             mDitherFbo = GLFramebuffer(
@@ -271,7 +267,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
             // 1/2 pixel offset in texture coordinate (UV) space
             // Note that this is different from NDC!
-            GLES31.glUniform2f(halfPixelLoc, (0.5 / draw.width).toFloat(), (0.5 / draw.height).toFloat())
+            GLES31.glUniform2f(halfPixelLoc, (0.5 / draw.width * mOffset).toFloat(), (0.5 / draw.height * mOffset).toFloat())
             drawMesh(vertexArray)
         }
 
@@ -309,7 +305,6 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
             // Downsample
             GLES31.glUseProgram(mDownsampleProgram)
-            GLES31.glUniform1f(mDOffsetLoc, mOffset)
             for (i in 0 until mPasses) {
                 read = mPassFbos[i]
                 draw = mPassFbos[i + 1]
@@ -318,7 +313,6 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
             // Upsample
             GLES31.glUseProgram(mUpsampleProgram)
-            GLES31.glUniform1f(mUOffsetLoc, mOffset)
             for (i in 0 until mPasses) {
                 // Upsampling uses buffers in the reverse direction
                 read = mPassFbos[mPasses - i]
@@ -548,7 +542,6 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         precision mediump float;
 
         uniform sampler2D uTexture;
-        uniform float uOffset;
         uniform vec2 uHalfPixel;
 
         in highp vec2 vUV;
@@ -556,10 +549,10 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
         void main() {
             vec4 sum = texture(uTexture, vUV) * 4.0;
-            sum += texture(uTexture, vUV - uHalfPixel.xy * uOffset);
-            sum += texture(uTexture, vUV + uHalfPixel.xy * uOffset);
-            sum += texture(uTexture, vUV + vec2(uHalfPixel.x, -uHalfPixel.y) * uOffset);
-            sum += texture(uTexture, vUV - vec2(uHalfPixel.x, -uHalfPixel.y) * uOffset);
+            sum += texture(uTexture, vUV - uHalfPixel.xy);
+            sum += texture(uTexture, vUV + uHalfPixel.xy);
+            sum += texture(uTexture, vUV + vec2(uHalfPixel.x, -uHalfPixel.y));
+            sum += texture(uTexture, vUV - vec2(uHalfPixel.x, -uHalfPixel.y));
             fragColor = sum / 8.0;
         }
         """
@@ -569,21 +562,20 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         precision mediump float;
 
         uniform sampler2D uTexture;
-        uniform float uOffset;
         uniform vec2 uHalfPixel;
 
         in highp vec2 vUV;
         out vec4 fragColor;
 
         void main() {
-            vec4 sum = texture(uTexture, vUV + vec2(-uHalfPixel.x * 2.0, 0.0) * uOffset);
-            sum += texture(uTexture, vUV + vec2(-uHalfPixel.x, uHalfPixel.y) * uOffset) * 2.0;
-            sum += texture(uTexture, vUV + vec2(0.0, uHalfPixel.y * 2.0) * uOffset);
-            sum += texture(uTexture, vUV + vec2(uHalfPixel.x, uHalfPixel.y) * uOffset) * 2.0;
-            sum += texture(uTexture, vUV + vec2(uHalfPixel.x * 2.0, 0.0) * uOffset);
-            sum += texture(uTexture, vUV + vec2(uHalfPixel.x, -uHalfPixel.y) * uOffset) * 2.0;
-            sum += texture(uTexture, vUV + vec2(0.0, -uHalfPixel.y * 2.0) * uOffset);
-            sum += texture(uTexture, vUV + vec2(-uHalfPixel.x, -uHalfPixel.y) * uOffset) * 2.0;
+            vec4 sum = texture(uTexture, vUV + vec2(-uHalfPixel.x * 2.0, 0.0));
+            sum += texture(uTexture, vUV + vec2(-uHalfPixel.x, uHalfPixel.y)) * 2.0;
+            sum += texture(uTexture, vUV + vec2(0.0, uHalfPixel.y * 2.0));
+            sum += texture(uTexture, vUV + vec2(uHalfPixel.x, uHalfPixel.y)) * 2.0;
+            sum += texture(uTexture, vUV + vec2(uHalfPixel.x * 2.0, 0.0));
+            sum += texture(uTexture, vUV + vec2(uHalfPixel.x, -uHalfPixel.y)) * 2.0;
+            sum += texture(uTexture, vUV + vec2(0.0, -uHalfPixel.y * 2.0));
+            sum += texture(uTexture, vUV + vec2(-uHalfPixel.x, -uHalfPixel.y)) * 2.0;
             fragColor = sum / 12.0;
         }
         """
