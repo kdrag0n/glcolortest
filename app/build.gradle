@@ -10,7 +10,7 @@ android {
     defaultConfig {
         applicationId "dev.kdrag0n.blurtest"
         minSdkVersion 29
-        targetSdkVersion 30
+        targetSdkVersion 29
         versionCode 1
         versionName "1.0"
 
