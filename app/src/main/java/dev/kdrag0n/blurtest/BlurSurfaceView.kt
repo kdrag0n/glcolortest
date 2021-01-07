@@ -78,7 +78,6 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         private var mMBlurredTextureLoc = 0
         private var mMDitherTextureLoc = 0
         private var mMBlurOpacityLoc = 0
-        private var mMDitherLoc = 0
         private var mMVertexArray = 0
 
         private var mDownsampleProgram = 0
@@ -148,7 +147,6 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             mMBlurredTextureLoc = GLES31.glGetUniformLocation(mMixProgram, "uBlurredTexture")
             mMDitherTextureLoc = GLES31.glGetUniformLocation(mMixProgram, "uDitherTexture")
             mMBlurOpacityLoc = GLES31.glGetUniformLocation(mMixProgram, "uBlurOpacity")
-            mMDitherLoc = GLES31.glGetUniformLocation(mMixProgram, "uDither")
             mMVertexArray = GLUtils.createVertexArray(mMeshBuffer, mMPosLoc, mMUvLoc)
 
             mDownsampleProgram = GLUtils.createProgram(VERTEX_SHADER, DOWNSAMPLE_FRAG_SHADER)
@@ -317,7 +315,6 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             // Crossfade using mix shader
             GLES31.glUseProgram(mMixProgram)
             GLES31.glUniform1f(mMBlurOpacityLoc, opacity)
-            GLES31.glUniform1i(mMDitherLoc, if (currentLayer == layers - 1) 1 else 0)
             logDebug("render - layers=$layers current=$currentLayer dither=${currentLayer == layers - 1}")
 
             GLES31.glActiveTexture(GLES31.GL_TEXTURE0)
@@ -571,18 +568,14 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         uniform sampler2D uBlurredTexture;
         uniform sampler2D uDitherTexture;
         uniform float uBlurOpacity;
-        uniform bool uDither;
 
         in highp vec2 vUV;
         out vec4 fragColor;
 
         void main() {
+            vec4 dither = (texture(uDitherTexture, gl_FragCoord.xy / 64.0) - 0.5) / 64.0;
+            vec4 blurred = texture(uBlurredTexture, vUV) + dither;
             vec4 composition = texture(uCompositionTexture, vUV);
-            vec4 blurred = texture(uBlurredTexture, vUV);
-            if (uDither) {
-                vec4 dither = (texture(uDitherTexture, gl_FragCoord.xy / 64.0) - 0.5) / 64.0;
-                blurred += dither;
-            }
             fragColor = mix(composition, blurred, 1.0);
         }
         """
