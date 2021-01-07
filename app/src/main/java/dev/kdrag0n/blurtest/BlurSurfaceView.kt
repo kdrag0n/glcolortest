@@ -295,6 +295,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             var draw = mPassFbos[0]
             read.bindAsReadBuffer()
             draw.bindAsDrawBuffer()
+            // This initial downscaling blit makes the first pass correct and improves performance.
             GLES31.glBlitFramebuffer(
                 0, 0, read.width, read.height,
                 0, 0, draw.width, draw.height,
