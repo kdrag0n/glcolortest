@@ -453,7 +453,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             renderOffscreen = true
             listenTouch = false
 
-            Timber.i("Preparing to profile")
+            Timber.i("autoProfile: Preparing to profile")
             systemBoost {
                 Thread.sleep(15000)
                 Timber.i("Starting auto-profile rendering")
