@@ -118,6 +118,11 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         @Volatile private var totalRenderNanos = 0L
         @Volatile private var totalRenderFrames = 0
 
+        /*
+         * Blur implementation
+         * (as close to C++ as possible)
+         */
+
         private fun init() {
             val size = 2.0f
             val translation = 1.0f
@@ -345,7 +350,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             GLUtils.checkErrors()
         }
 
-        private fun drawFrame(fbId: Int) {
+        private fun drawFrame(fbId: Int): Long {
             // Render background
             setAsDrawTarget(mWidth, mHeight, kRadius)
             GLES31.glUseProgram(mPassthroughProgram)
@@ -354,8 +359,10 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             GLES31.glUniform1i(mPTextureLoc, 0)
             drawMesh(mPVertexArray)
             GLUtils.checkErrors()
+            GLES31.glFinish()
 
             // Blur
+            val beforeBlur = SystemClock.elapsedRealtimeNanos()
             for (i in 0 until kLayers) {
                 prepare()
 
@@ -369,7 +376,13 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
                 }
                 render(kLayers, i)
             }
+            GLES31.glFinish()
+            return SystemClock.elapsedRealtimeNanos() - beforeBlur
         }
+
+        /*
+         * Surface renderer implementation
+         */
 
         override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
             init()
@@ -392,11 +405,8 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
                 // Render off-screen after this for profiling
                 // We never return after this point as we're in a tight FPS measurement loop.
                 while (renderOffscreen) {
-                    val before = SystemClock.elapsedRealtimeNanos()
-                    drawFrame(mFinalFbo.framebuffer)
-                    GLES31.glFinish()
-                    val after = SystemClock.elapsedRealtimeNanos()
-                    totalRenderNanos += after - before
+                    val delta = drawFrame(mFinalFbo.framebuffer)
+                    totalRenderNanos += delta
                     totalRenderFrames++
                 }
             }
@@ -410,6 +420,10 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
                 GLES31.GL_RGB8, GLES31.GL_RGB, GLES31.GL_UNSIGNED_BYTE
             )
         }
+
+        /*
+         * Profiling
+         */
 
         private fun calcFrameTimeMs(): Double {
             // TODO: moving average
