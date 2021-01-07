@@ -461,7 +461,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
                 // Sample
                 Thread.sleep(30000)
                 val frameTimeMs = calcFrameTimeMs()
-                val formattedMs = String.format("%.4f", frameTimeMs)
+                val formattedMs = String.format("%.3f", frameTimeMs)
 
                 Timber.i("================ PROFILING FINISHED ================")
                 Timber.i("Average frame time: $formattedMs ms")
