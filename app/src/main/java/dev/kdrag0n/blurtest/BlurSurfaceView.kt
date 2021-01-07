@@ -482,7 +482,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
     companion object {
         /* Testing constants not in C++ version */
         private const val kRadius = 120
-        private const val kLayers = 2
+        private const val kLayers = 3
 
         // Downsample FBO to improve performance
         private const val kFboScale = 0.2f
