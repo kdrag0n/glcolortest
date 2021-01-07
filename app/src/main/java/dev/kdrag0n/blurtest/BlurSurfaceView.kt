@@ -206,59 +206,6 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             startFpsMonitor()
         }
 
-        private fun calcFrameTimeMs(): Double {
-            // TODO: moving average
-            return (totalRenderNanos.toDouble() / 1e6) / totalRenderFrames.toDouble()
-        }
-
-        private fun resetFrameProfiling() {
-            totalRenderNanos = 0L
-            totalRenderFrames = 0
-        }
-
-        private fun startFpsMonitor() {
-            thread(name = "Blur FPS Monitor", isDaemon = true) {
-                while (monitorFpsBg) {
-                    Thread.sleep(1000)
-                    if (renderOffscreen) {
-                        Timber.i("Off-screen avg frame time: ${calcFrameTimeMs()} ms")
-                    }
-                    resetFrameProfiling()
-                }
-            }
-        }
-
-        private fun autoProfile() {
-            // Stop background monitor and wait
-            monitorFpsBg = false
-            renderOffscreen = true
-            listenTouch = false
-
-            Timber.i("Preparing to profile")
-            systemBoost {
-                Thread.sleep(15000)
-                Timber.i("Starting auto-profile rendering")
-
-                // Sample
-                Thread.sleep(25000)
-                val frameTimeMs = calcFrameTimeMs()
-                val formattedMs = String.format("%.4f", frameTimeMs)
-
-                Timber.i("================ PROFILING FINISHED ================")
-                Timber.i("Average frame time: $formattedMs ms")
-                Timber.i("================ PROFILING FINISHED ================")
-                Toast.makeText(context, "Frame time: $formattedMs ms", Toast.LENGTH_SHORT).show()
-
-                // Restart background monitor
-                monitorFpsBg = true
-                listenTouch = true
-                systemUnboost {
-                    Timber.i("Cleaned up system profiling state")
-                    startFpsMonitor()
-                }
-            }
-        }
-
         private fun prepareBuffers(width: Int, height: Int) {
             mCompositionFbo = GLFramebuffer(width, height)
 
@@ -400,7 +347,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
         private fun drawFrame(fbId: Int) {
             // Render background
-            setAsDrawTarget(mWidth, mHeight, 120)
+            setAsDrawTarget(mWidth, mHeight, kRadius)
             GLES31.glUseProgram(mPassthroughProgram)
             GLES31.glActiveTexture(GLES31.GL_TEXTURE0)
             GLES31.glBindTexture(GLES31.GL_TEXTURE_2D, mBackgroundFbo.texture)
@@ -409,12 +356,19 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             GLUtils.checkErrors()
 
             // Blur
-            prepare()
+            for (i in 0 until kLayers) {
+                prepare()
 
-            // Mix and dither out
-            GLES31.glBindFramebuffer(GLES31.GL_FRAMEBUFFER, fbId)
-            GLES31.glViewport(0, 0, mWidth, mHeight)
-            render(1, 0)
+                if (i == kLayers - 1) {
+                    // Dither out to display
+                    GLES31.glBindFramebuffer(GLES31.GL_FRAMEBUFFER, fbId)
+                    GLES31.glViewport(0, 0, mWidth, mHeight)
+                } else {
+                    // Next blur pass
+                    setAsDrawTarget(mWidth, mHeight, kRadius)
+                }
+                render(kLayers, i)
+            }
         }
 
         override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
@@ -456,9 +410,66 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
                 GLES31.GL_RGB8, GLES31.GL_RGB, GLES31.GL_UNSIGNED_BYTE
             )
         }
+
+        private fun calcFrameTimeMs(): Double {
+            // TODO: moving average
+            return (totalRenderNanos.toDouble() / 1e6) / totalRenderFrames.toDouble()
+        }
+
+        private fun resetFrameProfiling() {
+            totalRenderNanos = 0L
+            totalRenderFrames = 0
+        }
+
+        private fun startFpsMonitor() {
+            thread(name = "Blur FPS Monitor", isDaemon = true) {
+                while (monitorFpsBg) {
+                    Thread.sleep(1000)
+                    if (renderOffscreen) {
+                        Timber.i("Off-screen avg frame time: ${calcFrameTimeMs()} ms")
+                    }
+                    resetFrameProfiling()
+                }
+            }
+        }
+
+        private fun autoProfile() {
+            // Stop background monitor and wait
+            monitorFpsBg = false
+            renderOffscreen = true
+            listenTouch = false
+
+            Timber.i("Preparing to profile")
+            systemBoost {
+                Thread.sleep(15000)
+                Timber.i("Starting auto-profile rendering")
+
+                // Sample
+                Thread.sleep(25000)
+                val frameTimeMs = calcFrameTimeMs()
+                val formattedMs = String.format("%.4f", frameTimeMs)
+
+                Timber.i("================ PROFILING FINISHED ================")
+                Timber.i("Average frame time: $formattedMs ms")
+                Timber.i("================ PROFILING FINISHED ================")
+                Toast.makeText(context, "Frame time: $formattedMs ms", Toast.LENGTH_SHORT).show()
+
+                // Restart background monitor
+                monitorFpsBg = true
+                listenTouch = true
+                systemUnboost {
+                    Timber.i("Cleaned up system profiling state")
+                    startFpsMonitor()
+                }
+            }
+        }
     }
 
     companion object {
+        /* Testing constants not in C++ version */
+        private const val kRadius = 120
+        private const val kLayers = 2
+
         // Downsample FBO to improve performance
         private const val kFboScale = 0.2f
         // We allocate FBOs for this many passes to avoid the overhead of dynamic allocation.
@@ -468,6 +479,9 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         // image, up to this radius.
         private const val kMaxCrossFadeRadius = 40.0f
 
+        // Minimum and maximum sampling offsets for each pass count, determined empirically.
+        // Too low: bilinear downsampling artifacts
+        // Too high: diagonal sampling artifacts
         private val kOffsetRanges = listOf(
             1.00f.. 2.50f, // pass 1
             1.25f.. 4.25f, // pass 2
