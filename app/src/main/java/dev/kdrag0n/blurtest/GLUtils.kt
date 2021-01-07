@@ -6,6 +6,7 @@ import android.opengl.GLES31
 import android.util.Half
 import timber.log.Timber
 import java.lang.IllegalStateException
+import java.nio.Buffer
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.ShortBuffer
@@ -94,7 +95,7 @@ object GLUtils {
     }
 
     @SuppressLint("HalfFloat")
-    fun bitmapToRgb16Buffer(bitmap: Bitmap, filter: (Float) -> Double = { it.toDouble() }): ShortBuffer {
+    fun bitmapToRgb16fBuffer(bitmap: Bitmap, filter: (Float) -> Double = { it.toDouble() }): ShortBuffer {
         return ByteBuffer.allocateDirect(bitmap.width * bitmap.height * 3 * 2).run {
             order(ByteOrder.nativeOrder())
             asShortBuffer().apply {
@@ -112,6 +113,21 @@ object GLUtils {
                 }
                 position(0)
             }
+        }
+    }
+
+    fun bitmapToRgb8Buffer(bitmap: Bitmap): Buffer {
+        return ByteBuffer.allocateDirect(bitmap.width * bitmap.height * 3).run {
+            order(ByteOrder.nativeOrder())
+            for (y in (bitmap.height - 1) downTo 0) {
+                for (x in 0 until bitmap.width) {
+                    val color = bitmap.getColor(x, y)
+                    put((color.red() * 255.0).toByte())
+                    put((color.green() * 255.0).toByte())
+                    put((color.blue() * 255.0).toByte())
+                }
+            }
+            position(0)
         }
     }
 }
