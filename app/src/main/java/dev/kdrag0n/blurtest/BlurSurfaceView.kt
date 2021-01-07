@@ -438,7 +438,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
                 while (monitorFpsBg) {
                     Thread.sleep(1000)
                     if (renderOffscreen) {
-                        Timber.i("Off-screen avg frame time: ${calcFrameTimeMs()} ms")
+                        Timber.i("Off-screen avg frame time: ${calcFrameTimeMs()} ms, $totalRenderFrames FPS")
                     }
                     resetFrameProfiling()
                 }
