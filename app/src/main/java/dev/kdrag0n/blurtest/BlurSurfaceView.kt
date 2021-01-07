@@ -35,6 +35,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
     private val renderer = BlurRenderer()
     @Volatile private var renderOffscreen = false
     @Volatile private var listenTouch = true
+    private var totalTaps = 0
 
     init {
         setEGLContextClientVersion(3)
@@ -46,8 +47,14 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         if (listenTouch) {
             when (event?.action) {
                 MotionEvent.ACTION_UP -> {
-                    renderOffscreen = !renderOffscreen
-                    Timber.i("Toggle render offscreen => $renderOffscreen")
+                    totalTaps++
+
+                    if (totalTaps == 2) {
+                        renderer.startProfiling()
+                    } else {
+                        //renderOffscreen = !renderOffscreen
+                        Timber.i("Toggle render offscreen => $renderOffscreen")
+                    }
                 }
             }
         }
@@ -370,14 +377,6 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             if (!renderOffscreen) {
                 drawFrame(0)
                 framesRenderedDisplay++
-
-                // We need to render 3 frames for triple-buffering, otherwise the display flickers
-                if (framesRenderedDisplay == 3) {
-                    renderOffscreen = true
-                    thread(name = "Auto Profile", isDaemon = true) {
-                        autoProfile()
-                    }
-                }
             } else {
                 // Render off-screen after this for profiling
                 // We never return after this point as we're in a tight FPS measurement loop.
@@ -452,6 +451,12 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
                     Timber.i("Cleaned up system profiling state")
                     startFpsMonitor()
                 }
+            }
+        }
+
+        fun startProfiling() {
+            thread(name = "Auto Profile", isDaemon = true) {
+                autoProfile()
             }
         }
     }
