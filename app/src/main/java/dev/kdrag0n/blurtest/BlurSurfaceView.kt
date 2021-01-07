@@ -412,7 +412,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         }
 
         override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
-            setAsDrawTarget(1080, 2340, 120)
+            setAsDrawTarget(width, height, 120)
             mFinalFbo = GLFramebuffer(
                 width, height, null,
                 GLES31.GL_LINEAR, GLES31.GL_CLAMP_TO_EDGE,
