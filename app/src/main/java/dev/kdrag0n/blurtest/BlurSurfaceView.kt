@@ -7,6 +7,7 @@ import android.opengl.GLES31
 import android.opengl.GLSurfaceView
 import android.os.SystemClock
 import android.view.MotionEvent
+import android.widget.Toast
 import timber.log.Timber
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -241,10 +242,12 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
                 // Sample
                 Thread.sleep(25000)
                 val frameTimeMs = calcFrameTimeMs()
+                val formattedMs = String.format("%.4f", frameTimeMs)
 
                 Timber.i("================ PROFILING FINISHED ================")
-                Timber.i("Average frame time: $frameTimeMs ms")
+                Timber.i("Average frame time: $formattedMs ms")
                 Timber.i("================ PROFILING FINISHED ================")
+                Toast.makeText(context, "Frame time: $formattedMs ms", Toast.LENGTH_SHORT).show()
 
                 // Restart background monitor
                 monitorFpsBg = true
