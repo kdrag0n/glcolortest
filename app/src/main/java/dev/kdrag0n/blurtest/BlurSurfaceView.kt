@@ -613,7 +613,8 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         out vec4 fragColor;
 
         void main() {
-            vec4 dither = (texture(uDitherTexture, gl_FragCoord.xy / 64.0) - 0.5) / 64.0;
+            vec2 targetSize = vec2(textureSize(uCompositionTexture, 0));
+            vec4 dither = (texture(uDitherTexture, vUV / 64.0 * targetSize) - 0.5) / 64.0;
             vec4 blurred = texture(uBlurredTexture, vUV) + dither;
             vec4 composition = texture(uCompositionTexture, vUV);
             fragColor = mix(composition, blurred, 1.0);
