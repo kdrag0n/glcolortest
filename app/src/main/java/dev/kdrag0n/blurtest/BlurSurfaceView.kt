@@ -246,7 +246,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
         // Set up render targets, redirecting output to offscreen texture.
         private fun setAsDrawTarget(width: Int, height: Int, radius: Int) {
-            if (width != mWidth || height != mHeight) {
+            if (width > mWidth || height > mHeight) {
                 prepareBuffers(width, height)
             }
 
