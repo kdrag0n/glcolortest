@@ -156,7 +156,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             mMBlurOpacityLoc = GLES31.glGetUniformLocation(mMixProgram, "uBlurOpacity")
             mMVertexArray = GLUtils.createVertexArray(mMeshBuffer, mMPosLoc, mMUvLoc)
 
-            mDitherMixProgram = GLUtils.createProgram(VERTEX_SHADER, DITHER_MIX_FRAG_SHADER)
+            mDitherMixProgram = GLUtils.createProgram(DITHER_MIX_VERTEX_SHADER, DITHER_MIX_FRAG_SHADER)
             mDMPosLoc = GLES31.glGetAttribLocation(mDitherMixProgram, "aPosition")
             mDMUvLoc = GLES31.glGetAttribLocation(mDitherMixProgram, "aUV")
             mDMCompositionTextureLoc = GLES31.glGetUniformLocation(mDitherMixProgram, "uCompositionTexture")
@@ -524,6 +524,25 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         }
         """
 
+        private const val DITHER_MIX_VERTEX_SHADER = """
+        #version 310 es
+        precision mediump float;
+
+        uniform sampler2D uCompositionTexture;
+
+        in vec2 aPosition;
+        in highp vec2 aUV;
+        out highp vec2 vUV;
+        out vec2 vNoiseUV;
+
+        void main() {
+            vUV = aUV;
+            vec2 targetSize = vec2(textureSize(uCompositionTexture, 0));
+            vNoiseUV = aUV / 64.0 * targetSize;
+            gl_Position = vec4(aPosition, 0.0, 1.0);
+        }
+        """
+
         private const val PASSTHROUGH_FRAG_SHADER = """
         #version 310 es
         precision mediump float;
@@ -610,10 +629,11 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         uniform float uBlurOpacity;
 
         in highp vec2 vUV;
+        in vec2 vNoiseUV;
         out vec4 fragColor;
 
         void main() {
-            vec4 dither = (texture(uDitherTexture, gl_FragCoord.xy / 64.0) - 0.5) / 64.0;
+            vec4 dither = (texture(uDitherTexture, vNoiseUV) - 0.5) / 64.0;
             vec4 blurred = texture(uBlurredTexture, vUV) + dither;
             vec4 composition = texture(uCompositionTexture, vUV);
             fragColor = mix(composition, blurred, 1.0);
