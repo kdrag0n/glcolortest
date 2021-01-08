@@ -230,7 +230,8 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
                 fbos.add(
                     GLFramebuffer(sourceFboWidth shr i, sourceFboHeight shr i, null,
                         GLES31.GL_LINEAR, GLES31.GL_CLAMP_TO_EDGE,
-                        GLES31.GL_RGB16F, GLES31.GL_RGB, GLES31.GL_HALF_FLOAT
+                        // 2-10-10-10 reversed is the only 10-bpc format in GLES 3.1
+                        GLES31.GL_RGB10_A2, GLES31.GL_RGBA, GLES31.GL_UNSIGNED_INT_2_10_10_10_REV
                     )
                 )
             }
