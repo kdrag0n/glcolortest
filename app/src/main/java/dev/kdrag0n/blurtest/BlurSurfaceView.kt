@@ -87,6 +87,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         private var mDMBlurredTextureLoc = 0
         private var mDMDitherTextureLoc = 0
         private var mDMBlurOpacityLoc = 0
+        private var mDMNoiseUVScaleLoc = 0
         private var mDMVertexArray = 0
 
         private var mDownsampleProgram = 0
@@ -163,6 +164,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             mDMBlurredTextureLoc = GLES31.glGetUniformLocation(mDitherMixProgram, "uBlurredTexture")
             mDMDitherTextureLoc = GLES31.glGetUniformLocation(mDitherMixProgram, "uDitherTexture")
             mDMBlurOpacityLoc = GLES31.glGetUniformLocation(mDitherMixProgram, "uBlurOpacity")
+            mDMNoiseUVScaleLoc = GLES31.glGetUniformLocation(mDitherMixProgram, "uNoiseUVScale")
             mDMVertexArray = GLUtils.createVertexArray(mMeshBuffer, mDMPosLoc, mDMUvLoc)
 
             mDownsampleProgram = GLUtils.createProgram(VERTEX_SHADER, DOWNSAMPLE_FRAG_SHADER)
@@ -334,6 +336,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             if (currentLayer == layers - 1) {
                 GLES31.glUseProgram(mDitherMixProgram)
                 GLES31.glUniform1f(mDMBlurOpacityLoc, opacity)
+                GLES31.glUniform2f(mDMNoiseUVScaleLoc, (1.0 / 64.0 * mWidth).toFloat(), (1.0 / 64.0 * mHeight).toFloat())
             } else {
                 GLES31.glUseProgram(mMixProgram)
                 GLES31.glUniform1f(mMBlurOpacityLoc, opacity)
@@ -529,6 +532,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         precision mediump float;
 
         uniform sampler2D uCompositionTexture;
+        uniform vec2 uNoiseUVScale;
 
         in vec2 aPosition;
         in highp vec2 aUV;
@@ -537,8 +541,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
         void main() {
             vUV = aUV;
-            vec2 targetSize = vec2(textureSize(uCompositionTexture, 0));
-            vNoiseUV = aUV / 64.0 * targetSize;
+            vNoiseUV = aUV * uNoiseUVScale;
             gl_Position = vec4(aPosition, 0.0, 1.0);
         }
         """
