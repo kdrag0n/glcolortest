@@ -142,13 +142,13 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             )
             mMeshBuffer = GLUtils.createVertexBuffer(vboData)
 
-            mPassthroughProgram = GLUtils.createProgram(VERTEX_SHADER, PASSTHROUGH_FRAG_SHADER)
+            mPassthroughProgram = GLUtils.createProgram(MIX_VERT_SHADER, PASSTHROUGH_FRAG_SHADER)
             mPPosLoc = GLES31.glGetAttribLocation(mPassthroughProgram, "aPosition")
             mPUvLoc = GLES31.glGetAttribLocation(mPassthroughProgram, "aUV")
             mPTextureLoc = GLES31.glGetUniformLocation(mPassthroughProgram, "uTexture")
             mPVertexArray = GLUtils.createVertexArray(mMeshBuffer, mPPosLoc, mPUvLoc)
 
-            mMixProgram = GLUtils.createProgram(VERTEX_SHADER, MIX_FRAG_SHADER)
+            mMixProgram = GLUtils.createProgram(MIX_VERT_SHADER, MIX_FRAG_SHADER)
             mMPosLoc = GLES31.glGetAttribLocation(mMixProgram, "aPosition")
             mMUvLoc = GLES31.glGetAttribLocation(mMixProgram, "aUV")
             mMCompositionTextureLoc = GLES31.glGetUniformLocation(mMixProgram, "uCompositionTexture")
@@ -157,7 +157,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             mMBlurOpacityLoc = GLES31.glGetUniformLocation(mMixProgram, "uBlurOpacity")
             mMVertexArray = GLUtils.createVertexArray(mMeshBuffer, mMPosLoc, mMUvLoc)
 
-            mDitherMixProgram = GLUtils.createProgram(DITHER_MIX_VERTEX_SHADER, DITHER_MIX_FRAG_SHADER)
+            mDitherMixProgram = GLUtils.createProgram(DITHER_MIX_VERT_SHADER, DITHER_MIX_FRAG_SHADER)
             mDMPosLoc = GLES31.glGetAttribLocation(mDitherMixProgram, "aPosition")
             mDMUvLoc = GLES31.glGetAttribLocation(mDitherMixProgram, "aUV")
             mDMCompositionTextureLoc = GLES31.glGetUniformLocation(mDitherMixProgram, "uCompositionTexture")
@@ -167,14 +167,14 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             mDMNoiseUVScaleLoc = GLES31.glGetUniformLocation(mDitherMixProgram, "uNoiseUVScale")
             mDMVertexArray = GLUtils.createVertexArray(mMeshBuffer, mDMPosLoc, mDMUvLoc)
 
-            mDownsampleProgram = GLUtils.createProgram(VERTEX_SHADER, DOWNSAMPLE_FRAG_SHADER)
+            mDownsampleProgram = GLUtils.createProgram(DOWNSAMPLE_VERT_SHADER, DOWNSAMPLE_FRAG_SHADER)
             mDPosLoc = GLES31.glGetAttribLocation(mDownsampleProgram, "aPosition")
             mDUvLoc = GLES31.glGetAttribLocation(mDownsampleProgram, "aUV")
             mDTextureLoc = GLES31.glGetUniformLocation(mDownsampleProgram, "uTexture")
             mDHalfPixelLoc = GLES31.glGetUniformLocation(mDownsampleProgram, "uHalfPixel")
             mDVertexArray = GLUtils.createVertexArray(mMeshBuffer, mDPosLoc, mDUvLoc)
 
-            mUpsampleProgram = GLUtils.createProgram(VERTEX_SHADER, UPSAMPLE_FRAG_SHADER)
+            mUpsampleProgram = GLUtils.createProgram(UPSAMPLE_VERT_SHADER, UPSAMPLE_FRAG_SHADER)
             mUPosLoc = GLES31.glGetAttribLocation(mUpsampleProgram, "aPosition")
             mUUvLoc = GLES31.glGetAttribLocation(mUpsampleProgram, "aUV")
             mUTextureLoc = GLES31.glGetUniformLocation(mUpsampleProgram, "uTexture")
@@ -513,39 +513,6 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             /* limited by kMaxPasses */
         )
 
-        private const val VERTEX_SHADER = """
-        #version 310 es
-        precision mediump float;
-
-        in vec2 aPosition;
-        in highp vec2 aUV;
-        out highp vec2 vUV;
-
-        void main() {
-            vUV = aUV;
-            gl_Position = vec4(aPosition, 0.0, 1.0);
-        }
-        """
-
-        private const val DITHER_MIX_VERTEX_SHADER = """
-        #version 310 es
-        precision mediump float;
-
-        uniform sampler2D uCompositionTexture;
-        uniform vec2 uNoiseUVScale;
-
-        in vec2 aPosition;
-        in highp vec2 aUV;
-        out highp vec2 vUV;
-        out vec2 vNoiseUV;
-
-        void main() {
-            vUV = aUV;
-            vNoiseUV = aUV * uNoiseUVScale;
-            gl_Position = vec4(aPosition, 0.0, 1.0);
-        }
-        """
-
         private const val PASSTHROUGH_FRAG_SHADER = """
         #version 310 es
         precision mediump float;
@@ -560,23 +527,71 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         }
         """
 
+        private const val DOWNSAMPLE_VERT_SHADER = """
+        #version 310 es
+        precision mediump float;
+
+        uniform vec2 uHalfPixel;
+
+        in vec2 aPosition;
+        in highp vec2 aUV;
+        out highp vec2 vUV;
+        out vec2 vDownTaps[4];
+
+        void main() {
+            vUV = aUV;
+            vDownTaps[0] = aUV - uHalfPixel.xy;
+            vDownTaps[1] = aUV + uHalfPixel.xy;
+            vDownTaps[2] = aUV + vec2(uHalfPixel.x, -uHalfPixel.y);
+            vDownTaps[3] = aUV - vec2(uHalfPixel.x, -uHalfPixel.y);
+
+            gl_Position = vec4(aPosition, 0.0, 1.0);
+        }
+        """
+
         private const val DOWNSAMPLE_FRAG_SHADER = """
         #version 310 es
         precision mediump float;
 
         uniform sampler2D uTexture;
-        uniform vec2 uHalfPixel;
 
         in highp vec2 vUV;
+        in vec2 vDownTaps[4];
         out vec4 fragColor;
 
         void main() {
             vec3 sum = texture(uTexture, vUV).rgb * 4.0;
-            sum += texture(uTexture, vUV - uHalfPixel.xy).rgb;
-            sum += texture(uTexture, vUV + uHalfPixel.xy).rgb;
-            sum += texture(uTexture, vUV + vec2(uHalfPixel.x, -uHalfPixel.y)).rgb;
-            sum += texture(uTexture, vUV - vec2(uHalfPixel.x, -uHalfPixel.y)).rgb;
+            sum += texture(uTexture, vDownTaps[0]).rgb;
+            sum += texture(uTexture, vDownTaps[1]).rgb;
+            sum += texture(uTexture, vDownTaps[2]).rgb;
+            sum += texture(uTexture, vDownTaps[3]).rgb;
             fragColor = vec4(sum * 0.125, 1.0);
+        }
+        """
+
+        private const val UPSAMPLE_VERT_SHADER = """
+        #version 310 es
+        precision mediump float;
+
+        uniform vec2 uHalfPixel;
+
+        in vec2 aPosition;
+        in highp vec2 aUV;
+        out highp vec2 vUV;
+        out vec2 vUpTaps[8];
+
+        void main() {
+            vUV = aUV;
+            vUpTaps[0] = aUV + vec2(-uHalfPixel.x * 2.0, 0.0);
+            vUpTaps[1] = aUV + vec2(-uHalfPixel.x, uHalfPixel.y);
+            vUpTaps[2] = aUV + vec2(0.0, uHalfPixel.y * 2.0);
+            vUpTaps[3] = aUV + vec2(uHalfPixel.x, uHalfPixel.y);
+            vUpTaps[4] = aUV + vec2(uHalfPixel.x * 2.0, 0.0);
+            vUpTaps[5] = aUV + vec2(uHalfPixel.x, -uHalfPixel.y);
+            vUpTaps[6] = aUV + vec2(0.0, -uHalfPixel.y * 2.0);
+            vUpTaps[7] = aUV + vec2(-uHalfPixel.x, -uHalfPixel.y);
+
+            gl_Position = vec4(aPosition, 0.0, 1.0);
         }
         """
 
@@ -585,21 +600,35 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         precision mediump float;
 
         uniform sampler2D uTexture;
-        uniform vec2 uHalfPixel;
 
         in highp vec2 vUV;
+        in vec2 vUpTaps[8];
         out vec4 fragColor;
 
         void main() {
-            vec3 sum = texture(uTexture, vUV + vec2(-uHalfPixel.x * 2.0, 0.0)).rgb;
-            sum += texture(uTexture, vUV + vec2(-uHalfPixel.x, uHalfPixel.y)).rgb * 2.0;
-            sum += texture(uTexture, vUV + vec2(0.0, uHalfPixel.y * 2.0)).rgb;
-            sum += texture(uTexture, vUV + vec2(uHalfPixel.x, uHalfPixel.y)).rgb * 2.0;
-            sum += texture(uTexture, vUV + vec2(uHalfPixel.x * 2.0, 0.0)).rgb;
-            sum += texture(uTexture, vUV + vec2(uHalfPixel.x, -uHalfPixel.y)).rgb * 2.0;
-            sum += texture(uTexture, vUV + vec2(0.0, -uHalfPixel.y * 2.0)).rgb;
-            sum += texture(uTexture, vUV + vec2(-uHalfPixel.x, -uHalfPixel.y)).rgb * 2.0;
+            vec3 sum = texture(uTexture, vUpTaps[0]).rgb;
+            sum += texture(uTexture, vUpTaps[1]).rgb * 2.0;
+            sum += texture(uTexture, vUpTaps[2]).rgb;
+            sum += texture(uTexture, vUpTaps[3]).rgb * 2.0;
+            sum += texture(uTexture, vUpTaps[4]).rgb;
+            sum += texture(uTexture, vUpTaps[5]).rgb * 2.0;
+            sum += texture(uTexture, vUpTaps[6]).rgb;
+            sum += texture(uTexture, vUpTaps[7]).rgb * 2.0;
             fragColor = vec4(sum * 0.08333333333333333, 1.0);
+        }
+        """
+
+        private const val MIX_VERT_SHADER = """
+        #version 310 es
+        precision mediump float;
+
+        in vec2 aPosition;
+        in highp vec2 aUV;
+        out highp vec2 vUV;
+
+        void main() {
+            vUV = aUV;
+            gl_Position = vec4(aPosition, 0.0, 1.0);
         }
         """
 
@@ -619,6 +648,25 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             vec3 blurred = texture(uBlurredTexture, vUV).rgb;
             vec3 composition = texture(uCompositionTexture, vUV).rgb;
             fragColor = vec4(mix(composition, blurred, 1.0), 1.0);
+        }
+        """
+
+        private const val DITHER_MIX_VERT_SHADER = """
+        #version 310 es
+        precision mediump float;
+
+        uniform sampler2D uCompositionTexture;
+        uniform vec2 uNoiseUVScale;
+
+        in vec2 aPosition;
+        in highp vec2 aUV;
+        out highp vec2 vUV;
+        out vec2 vNoiseUV;
+
+        void main() {
+            vUV = aUV;
+            vNoiseUV = aUV * uNoiseUVScale;
+            gl_Position = vec4(aPosition, 0.0, 1.0);
         }
         """
 
