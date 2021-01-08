@@ -183,9 +183,9 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
             mDitherFbo = GLFramebuffer(
                 noiseBitmap.width, noiseBitmap.height,
-                GLUtils.bitmapToRgb8Buffer(noiseBitmap),
+                GLUtils.bitmapToRgb16fBuffer(noiseBitmap) { (it - 0.5) / 64.0 },
                 GLES31.GL_NEAREST, GLES31.GL_REPEAT,
-                GLES31.GL_RGB8, GLES31.GL_RGB, GLES31.GL_UNSIGNED_BYTE
+                GLES31.GL_RGB16F, GLES31.GL_RGB, GLES31.GL_HALF_FLOAT
             )
 
             val bgBuffer = ByteBuffer.allocateDirect(bgBitmap.rowBytes * bgBitmap.height).run {
@@ -636,7 +636,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         out vec4 fragColor;
 
         void main() {
-            vec4 dither = (texture(uDitherTexture, vNoiseUV) - 0.5) / 64.0;
+            vec4 dither = texture(uDitherTexture, vNoiseUV);
             vec4 blurred = texture(uBlurredTexture, vUV) + dither;
             vec4 composition = texture(uCompositionTexture, vUV);
             fragColor = mix(composition, blurred, 1.0);
