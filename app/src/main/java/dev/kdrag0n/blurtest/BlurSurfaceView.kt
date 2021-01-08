@@ -167,6 +167,9 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
                 GLES31.GL_RGBA8, GLES31.GL_RGBA, GLES31.GL_UNSIGNED_BYTE
             )
 
+            GLES31.glUseProgram(mPassthroughProgram)
+            GLES31.glUniform1i(mPTextureLoc, 0)
+
             GLES31.glUseProgram(mDownsampleProgram)
             GLES31.glUniform1i(mDTextureLoc, 0)
 
@@ -203,6 +206,10 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
                     )
                 )
             }
+
+            GLES31.glUseProgram(mDitherMixProgram)
+            GLES31.glUniform2f(mDMNoiseUVScaleLoc, (1.0 / 64.0 * mWidth).toFloat(), (1.0 / 64.0 * mHeight).toFloat())
+            GLES31.glUseProgram(0)
 
             mPassFbos = fbos
             mWidth = width
@@ -304,7 +311,6 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             if (currentLayer == layers - 1) {
                 GLES31.glUseProgram(mDitherMixProgram)
                 GLES31.glUniform1f(mDMBlurOpacityLoc, opacity)
-                GLES31.glUniform2f(mDMNoiseUVScaleLoc, (1.0 / 64.0 * mWidth).toFloat(), (1.0 / 64.0 * mHeight).toFloat())
             } else {
                 GLES31.glUseProgram(mMixProgram)
                 GLES31.glUniform1f(mMBlurOpacityLoc, opacity)
@@ -334,7 +340,6 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             GLES31.glUseProgram(mPassthroughProgram)
             GLES31.glActiveTexture(GLES31.GL_TEXTURE0)
             GLES31.glBindTexture(GLES31.GL_TEXTURE_2D, mBackgroundFbo.texture)
-            GLES31.glUniform1i(mPTextureLoc, 0)
             drawMesh(mPVertexArray)
             GLUtils.checkErrors()
             GLES31.glFinish()
