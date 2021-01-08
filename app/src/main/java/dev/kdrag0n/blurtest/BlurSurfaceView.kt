@@ -237,6 +237,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             GLES31.glViewport(0, 0, draw.width, draw.height)
             GLES31.glBindTexture(GLES31.GL_TEXTURE_2D, read.texture)
             draw.bind()
+            GLES31.glClear(GLES31.GL_COLOR_BUFFER_BIT)
 
             // 1/2 pixel offset in texture coordinate (UV) space
             // Note that this is different from NDC!
