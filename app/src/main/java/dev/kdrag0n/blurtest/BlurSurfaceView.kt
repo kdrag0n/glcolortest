@@ -550,9 +550,9 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             vUV.y = (gl_VertexID == 1) ? 2.0 : 0.0;
             gl_Position = vec4(vUV * vec2(2.0, -2.0) + vec2(-1.0, 1.0), 1.0, 1.0);
 
-            vUpTaps[0] = vec4(vUV + vec2(-uHalfPixel.x * 2.0, 0.0), vUV + vec2(-uHalfPixel.x, uHalfPixel.y));
-            vUpTaps[1] = vec4(vUV + vec2(0.0, uHalfPixel.y * 2.0), vUV + vec2(uHalfPixel.x, uHalfPixel.y));
-            vUpTaps[2] = vec4(vUV + vec2(uHalfPixel.x * 2.0, 0.0), vUV + vec2(uHalfPixel.x, -uHalfPixel.y));
+            vUpTaps[0] = vec4(vUV + vec2(-uHalfPixel.x * 2.0, 0.0), vUV + vec2(-uHalfPixel.x,  uHalfPixel.y));
+            vUpTaps[1] = vec4(vUV + vec2(0.0,  uHalfPixel.y * 2.0), vUV + vec2( uHalfPixel.x,  uHalfPixel.y));
+            vUpTaps[2] = vec4(vUV + vec2( uHalfPixel.x * 2.0, 0.0), vUV + vec2( uHalfPixel.x, -uHalfPixel.y));
             vUpTaps[3] = vec4(vUV + vec2(0.0, -uHalfPixel.y * 2.0), vUV + vec2(-uHalfPixel.x, -uHalfPixel.y));
         }
         """
