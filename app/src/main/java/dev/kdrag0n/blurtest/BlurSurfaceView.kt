@@ -616,9 +616,9 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         out vec4 fragColor;
 
         void main() {
-            vec4 blurred = texture(uBlurredTexture, vUV);
-            vec4 composition = texture(uCompositionTexture, vUV);
-            fragColor = mix(composition, blurred, 1.0);
+            vec3 blurred = texture(uBlurredTexture, vUV).rgb;
+            vec3 composition = texture(uCompositionTexture, vUV).rgb;
+            fragColor = vec4(mix(composition, blurred, 1.0), 1.0);
         }
         """
 
