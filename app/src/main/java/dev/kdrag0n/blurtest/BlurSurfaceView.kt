@@ -571,12 +571,12 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         out vec4 fragColor;
 
         void main() {
-            vec4 sum = texture(uTexture, vUV) * 4.0;
-            sum += texture(uTexture, vUV - uHalfPixel.xy);
-            sum += texture(uTexture, vUV + uHalfPixel.xy);
-            sum += texture(uTexture, vUV + vec2(uHalfPixel.x, -uHalfPixel.y));
-            sum += texture(uTexture, vUV - vec2(uHalfPixel.x, -uHalfPixel.y));
-            fragColor = sum * 0.125;
+            vec3 sum = texture(uTexture, vUV).rgb * 4.0;
+            sum += texture(uTexture, vUV - uHalfPixel.xy).rgb;
+            sum += texture(uTexture, vUV + uHalfPixel.xy).rgb;
+            sum += texture(uTexture, vUV + vec2(uHalfPixel.x, -uHalfPixel.y)).rgb;
+            sum += texture(uTexture, vUV - vec2(uHalfPixel.x, -uHalfPixel.y)).rgb;
+            fragColor = vec4(sum * 0.125, 1.0);
         }
         """
 
@@ -591,15 +591,15 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         out vec4 fragColor;
 
         void main() {
-            vec4 sum = texture(uTexture, vUV + vec2(-uHalfPixel.x * 2.0, 0.0));
-            sum += texture(uTexture, vUV + vec2(-uHalfPixel.x, uHalfPixel.y)) * 2.0;
-            sum += texture(uTexture, vUV + vec2(0.0, uHalfPixel.y * 2.0));
-            sum += texture(uTexture, vUV + vec2(uHalfPixel.x, uHalfPixel.y)) * 2.0;
-            sum += texture(uTexture, vUV + vec2(uHalfPixel.x * 2.0, 0.0));
-            sum += texture(uTexture, vUV + vec2(uHalfPixel.x, -uHalfPixel.y)) * 2.0;
-            sum += texture(uTexture, vUV + vec2(0.0, -uHalfPixel.y * 2.0));
-            sum += texture(uTexture, vUV + vec2(-uHalfPixel.x, -uHalfPixel.y)) * 2.0;
-            fragColor = sum * 0.08333333333333333;
+            vec3 sum = texture(uTexture, vUV + vec2(-uHalfPixel.x * 2.0, 0.0)).rgb;
+            sum += texture(uTexture, vUV + vec2(-uHalfPixel.x, uHalfPixel.y)).rgb * 2.0;
+            sum += texture(uTexture, vUV + vec2(0.0, uHalfPixel.y * 2.0)).rgb;
+            sum += texture(uTexture, vUV + vec2(uHalfPixel.x, uHalfPixel.y)).rgb * 2.0;
+            sum += texture(uTexture, vUV + vec2(uHalfPixel.x * 2.0, 0.0)).rgb;
+            sum += texture(uTexture, vUV + vec2(uHalfPixel.x, -uHalfPixel.y)).rgb * 2.0;
+            sum += texture(uTexture, vUV + vec2(0.0, -uHalfPixel.y * 2.0)).rgb;
+            sum += texture(uTexture, vUV + vec2(-uHalfPixel.x, -uHalfPixel.y)).rgb * 2.0;
+            fragColor = vec4(sum * 0.08333333333333333, 1.0);
         }
         """
 
