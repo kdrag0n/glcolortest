@@ -132,14 +132,14 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
          */
 
         private fun init() {
-            val size = 2.0f
-            val translation = 1.0f
-            val vboData = floatArrayOf(
+            val size = 2
+            val translation = 1
+            val vboData = intArrayOf(
                 // Position                              // UV
-                translation - size, -translation - size, 0.0f, 0.0f - translation,
-                translation - size, -translation + size, 0.0f, size - translation,
+                translation - size, -translation - size, 0,    0    - translation,
+                translation - size, -translation + size, 0,    size - translation,
                 translation + size, -translation + size, size, size - translation
-            )
+            ).map { it.toByte() }.toByteArray()
             mMeshBuffer = GLUtils.createVertexBuffer(vboData)
 
             mPassthroughProgram = GLUtils.createProgram(MIX_VERT_SHADER, PASSTHROUGH_FRAG_SHADER)

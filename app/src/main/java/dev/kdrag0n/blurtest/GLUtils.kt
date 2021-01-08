@@ -56,21 +56,19 @@ object GLUtils {
         }
     }
 
-    fun createVertexBuffer(data: FloatArray): Int {
+    fun createVertexBuffer(data: ByteArray): Int {
         val buf = IntArray(1)
         GLES31.glGenBuffers(1, buf, 0)
         val buffer = buf[0]
 
-        val dataBuf = ByteBuffer.allocateDirect(data.size * 4).run {
+        val dataBuf = ByteBuffer.allocateDirect(data.size).run {
             order(ByteOrder.nativeOrder())
-            asFloatBuffer().apply {
-                put(data)
-                position(0)
-            }
+            put(data)
+            position(0)
         }
 
         GLES31.glBindBuffer(GLES31.GL_ARRAY_BUFFER, buffer)
-        GLES31.glBufferData(GLES31.GL_ARRAY_BUFFER, data.size * 4, dataBuf, GLES31.GL_STATIC_DRAW)
+        GLES31.glBufferData(GLES31.GL_ARRAY_BUFFER, data.size, dataBuf, GLES31.GL_STATIC_DRAW)
         GLES31.glBindBuffer(GLES31.GL_ARRAY_BUFFER, 0)
 
         return buffer
@@ -84,10 +82,10 @@ object GLUtils {
         GLES31.glBindBuffer(GLES31.GL_ARRAY_BUFFER, vertexBuffer)
 
         GLES31.glEnableVertexAttribArray(position)
-        GLES31.glVertexAttribPointer(position, 2, GLES31.GL_FLOAT, false, 4 * 4, 0)
+        GLES31.glVertexAttribPointer(position, 2, GLES31.GL_BYTE, false, 4, 0)
 
         GLES31.glEnableVertexAttribArray(uv)
-        GLES31.glVertexAttribPointer(uv, 2, GLES31.GL_FLOAT, false, 4 * 4, 2 * 4)
+        GLES31.glVertexAttribPointer(uv, 2, GLES31.GL_BYTE, false, 4, 2)
 
         GLES31.glBindBuffer(GLES31.GL_ARRAY_BUFFER, 0)
         GLES31.glBindVertexArray(0)
