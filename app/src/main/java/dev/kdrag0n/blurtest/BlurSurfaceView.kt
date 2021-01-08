@@ -223,7 +223,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
         private fun drawMesh(vertexArray: Int) {
             GLES31.glBindVertexArray(vertexArray)
-            GLES31.glDrawArrays(GLES31.GL_TRIANGLES, 0, 6)
+            GLES31.glDrawArrays(GLES31.GL_TRIANGLES, 0, 3)
             GLES31.glBindVertexArray(0)
         }
 
@@ -505,11 +505,9 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         out vec4 vDownTaps[2];
 
         void main() {
-            float x = float(((uint(gl_VertexID) + 2u) / 3u)%2u);
-            float y = float(((uint(gl_VertexID) + 1u) / 3u)%2u);
-
-            gl_Position = vec4(-1.0 + x*2.0, -1.0 + y*2.0, 0.0, 1.0);
-            vUV = vec2(x, y);
+            vUV.x = (gl_VertexID == 2) ? 2.0 : 0.0;
+            vUV.y = (gl_VertexID == 1) ? 2.0 : 0.0;
+            gl_Position = vec4(vUV * vec2(2.0, -2.0) + vec2(-1.0, 1.0), 1.0, 1.0);
 
             vDownTaps[0] = vec4(vUV - uHalfPixel.xy, vUV + uHalfPixel.xy);
             vDownTaps[1] = vec4(vUV + vec2(uHalfPixel.x, -uHalfPixel.y), vUV - vec2(uHalfPixel.x, -uHalfPixel.y));
@@ -546,11 +544,9 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         out vec4 vUpTaps[4];
 
         void main() {
-            float x = float(((uint(gl_VertexID) + 2u) / 3u)%2u);
-            float y = float(((uint(gl_VertexID) + 1u) / 3u)%2u);
-
-            gl_Position = vec4(-1.0 + x*2.0, -1.0 + y*2.0, 0.0, 1.0);
-            vUV = vec2(x, y);
+            vUV.x = (gl_VertexID == 2) ? 2.0 : 0.0;
+            vUV.y = (gl_VertexID == 1) ? 2.0 : 0.0;
+            gl_Position = vec4(vUV * vec2(2.0, -2.0) + vec2(-1.0, 1.0), 1.0, 1.0);
 
             vUpTaps[0] = vec4(vUV + vec2(-uHalfPixel.x * 2.0, 0.0), vUV + vec2(-uHalfPixel.x, uHalfPixel.y));
             vUpTaps[1] = vec4(vUV + vec2(0.0, uHalfPixel.y * 2.0), vUV + vec2(uHalfPixel.x, uHalfPixel.y));
@@ -586,11 +582,9 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         out highp vec2 vUV;
 
         void main() {
-            float x = float(((uint(gl_VertexID) + 2u) / 3u)%2u);
-            float y = float(((uint(gl_VertexID) + 1u) / 3u)%2u);
-
-            gl_Position = vec4(-1.0 + x*2.0, -1.0 + y*2.0, 0.0, 1.0);
-            vUV = vec2(x, y);
+            vUV.x = (gl_VertexID == 2) ? 2.0 : 0.0;
+            vUV.y = (gl_VertexID == 1) ? 2.0 : 0.0;
+            gl_Position = vec4(vUV * vec2(2.0, -2.0) + vec2(-1.0, 1.0), 1.0, 1.0);
         }
         """
 
@@ -624,11 +618,9 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         out vec2 vNoiseUV;
 
         void main() {
-            float x = float(((uint(gl_VertexID) + 2u) / 3u)%2u);
-            float y = float(((uint(gl_VertexID) + 1u) / 3u)%2u);
-
-            gl_Position = vec4(-1.0 + x*2.0, -1.0 + y*2.0, 0.0, 1.0);
-            vUV = vec2(x, y);
+            vUV.x = (gl_VertexID == 2) ? 2.0 : 0.0;
+            vUV.y = (gl_VertexID == 1) ? 2.0 : 0.0;
+            gl_Position = vec4(vUV * vec2(2.0, -2.0) + vec2(-1.0, 1.0), 1.0, 1.0);
 
             vNoiseUV = vUV * uNoiseUVScale;
         }
