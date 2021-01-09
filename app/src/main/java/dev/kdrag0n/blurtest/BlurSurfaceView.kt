@@ -68,6 +68,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         private var mPVertexArray = 0
 
         private var mMixProgram = 0
+        private var mMTexScaleLoc = 0
         private var mMCompositionTextureLoc = 0
         private var mMBlurredTextureLoc = 0
         private var mMDitherTextureLoc = 0
@@ -75,6 +76,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         private var mMVertexArray = 0
 
         private var mDitherMixProgram = 0
+        private var mDMTexScaleLoc = 0
         private var mDMCompositionTextureLoc = 0
         private var mDMBlurredTextureLoc = 0
         private var mDMDitherTextureLoc = 0
@@ -83,11 +85,13 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         private var mDMVertexArray = 0
 
         private var mDownsampleProgram = 0
+        private var mDTexScaleLoc = 0
         private var mDTextureLoc = 0
         private var mDHalfPixelLoc = 0
         private var mDVertexArray = 0
 
         private var mUpsampleProgram = 0
+        private var mUTexScaleLoc = 0
         private var mUTextureLoc = 0
         private var mUHalfPixelLoc = 0
         private var mUVertexArray = 0
@@ -120,11 +124,12 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
          */
 
         private fun init() {
-            mPassthroughProgram = GLUtils.createProgram(MIX_VERT_SHADER, PASSTHROUGH_FRAG_SHADER)
+            mPassthroughProgram = GLUtils.createProgram(PASSTHROUGH_VERT_SHADER, PASSTHROUGH_FRAG_SHADER)
             mPTextureLoc = GLES31.glGetUniformLocation(mPassthroughProgram, "uTexture")
             mPVertexArray = GLUtils.createVertexArray()
 
             mMixProgram = GLUtils.createProgram(MIX_VERT_SHADER, MIX_FRAG_SHADER)
+            mMTexScaleLoc = GLES31.glGetUniformLocation(mMixProgram, "uTexScale")
             mMCompositionTextureLoc = GLES31.glGetUniformLocation(mMixProgram, "uCompositionTexture")
             mMBlurredTextureLoc = GLES31.glGetUniformLocation(mMixProgram, "uBlurredTexture")
             mMDitherTextureLoc = GLES31.glGetUniformLocation(mMixProgram, "uDitherTexture")
@@ -132,6 +137,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             mMVertexArray = GLUtils.createVertexArray()
 
             mDitherMixProgram = GLUtils.createProgram(DITHER_MIX_VERT_SHADER, DITHER_MIX_FRAG_SHADER)
+            mDMTexScaleLoc = GLES31.glGetUniformLocation(mDitherMixProgram, "uTexScale")
             mDMCompositionTextureLoc = GLES31.glGetUniformLocation(mDitherMixProgram, "uCompositionTexture")
             mDMBlurredTextureLoc = GLES31.glGetUniformLocation(mDitherMixProgram, "uBlurredTexture")
             mDMDitherTextureLoc = GLES31.glGetUniformLocation(mDitherMixProgram, "uDitherTexture")
@@ -140,11 +146,13 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             mDMVertexArray = GLUtils.createVertexArray()
 
             mDownsampleProgram = GLUtils.createProgram(DOWNSAMPLE_VERT_SHADER, DOWNSAMPLE_FRAG_SHADER)
+            mDTexScaleLoc = GLES31.glGetUniformLocation(mDownsampleProgram, "uTexScale")
             mDTextureLoc = GLES31.glGetUniformLocation(mDownsampleProgram, "uTexture")
             mDHalfPixelLoc = GLES31.glGetUniformLocation(mDownsampleProgram, "uHalfPixel")
             mDVertexArray = GLUtils.createVertexArray()
 
             mUpsampleProgram = GLUtils.createProgram(UPSAMPLE_VERT_SHADER, UPSAMPLE_FRAG_SHADER)
+            mUTexScaleLoc = GLES31.glGetUniformLocation(mUpsampleProgram, "uTexScale")
             mUTextureLoc = GLES31.glGetUniformLocation(mUpsampleProgram, "uTexture")
             mUHalfPixelLoc = GLES31.glGetUniformLocation(mUpsampleProgram, "uHalfPixel")
             mUVertexArray = GLUtils.createVertexArray()
@@ -231,7 +239,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         }
 
         // Execute blur passes, rendering to offscreen texture.
-        private fun renderPass(read: GLFramebuffer, draw: GLFramebuffer, halfPixelLoc: Int, vertexArray: Int) {
+        private fun renderPass(read: GLFramebuffer, draw: GLFramebuffer, texScaleLoc: Int, halfPixelLoc: Int, vertexArray: Int) {
             logDebug("blur to ${draw.width}x${draw.height}")
 
             GLES31.glViewport(0, 0, draw.width, draw.height)
@@ -241,6 +249,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             // 1/2 pixel offset in texture coordinate (UV) space
             // Note that this is different from NDC!
             GLES31.glUniform2f(halfPixelLoc, (0.5 / draw.width * mOffset).toFloat(), (0.5 / draw.height * mOffset).toFloat())
+            GLES31.glUniform1f(texScaleLoc, 1.0f)
             drawMesh(vertexArray)
         }
 
@@ -282,7 +291,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             for (i in 0 until mPasses) {
                 read = mPassFbos[i]
                 draw = mPassFbos[i + 1]
-                renderPass(read, draw, mDHalfPixelLoc, mDVertexArray)
+                renderPass(read, draw, mDTexScaleLoc, mDHalfPixelLoc, mDVertexArray)
             }
 
             // Upsample
@@ -291,7 +300,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
                 // Upsampling uses buffers in the reverse direction
                 read = mPassFbos[mPasses - i]
                 draw = mPassFbos[mPasses - i - 1]
-                renderPass(read, draw, mUHalfPixelLoc, mUVertexArray)
+                renderPass(read, draw, mUTexScaleLoc, mUHalfPixelLoc, mUVertexArray)
             }
 
             mLastDrawTarget = draw
@@ -308,9 +317,11 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
                 GLES31.glUseProgram(mDitherMixProgram)
                 GLES31.glUniform1f(mDMBlurOpacityLoc, opacity)
                 GLES31.glUniform2f(mDMNoiseUVScaleLoc, (1.0 / 64.0 * mWidth).toFloat(), (1.0 / 64.0 * mHeight).toFloat())
+                GLES31.glUniform1f(mDMTexScaleLoc, 1.0f)
             } else {
                 GLES31.glUseProgram(mMixProgram)
                 GLES31.glUniform1f(mMBlurOpacityLoc, opacity)
+                GLES31.glUniform1f(mMTexScaleLoc, 1.0f)
             }
             logDebug("render - layers=$layers current=$currentLayer dither=${currentLayer == layers - 1}")
 
@@ -497,18 +508,33 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         }
         """
 
+        private const val PASSTHROUGH_VERT_SHADER = """
+        #version 310 es
+        precision mediump float;
+
+        uniform vec2 uNoiseUVScale;
+
+        out highp vec2 vUV;
+
+        void main() {
+            vUV.x = (gl_VertexID == 2) ? 2.0 : 0.0;
+            vUV.y = (gl_VertexID == 1) ? 2.0 : 0.0;
+            gl_Position = vec4(vUV * vec2(2.0, -2.0) + vec2(-1.0, 1.0), 1.0, 1.0);
+        }
+        """
+
         private const val DOWNSAMPLE_VERT_SHADER = """
         #version 310 es
         precision mediump float;
 
         uniform vec2 uHalfPixel;
+        uniform float uTexScale;
 
         out highp vec2 vUV;
         out vec4 vDownTaps[2];
 
         void main() {
-            vUV.x = (gl_VertexID == 2) ? 2.0 : 0.0;
-            vUV.y = (gl_VertexID == 1) ? 2.0 : 0.0;
+            vUV = vec2((gl_VertexID == 2) ? 2.0 : 0.0, (gl_VertexID == 1) ? 2.0 : 0.0) / 2.0 * uTexScale * 2.0;
             gl_Position = vec4(vUV * vec2(2.0, -2.0) + vec2(-1.0, 1.0), 1.0, 1.0);
 
             vDownTaps[0] = vec4(vUV - uHalfPixel.xy, vUV + uHalfPixel.xy);
@@ -541,13 +567,13 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         precision mediump float;
 
         uniform vec2 uHalfPixel;
+        uniform float uTexScale;
 
         out highp vec2 vUV;
         out vec4 vUpTaps[4];
 
         void main() {
-            vUV.x = (gl_VertexID == 2) ? 2.0 : 0.0;
-            vUV.y = (gl_VertexID == 1) ? 2.0 : 0.0;
+            vUV = vec2((gl_VertexID == 2) ? 2.0 : 0.0, (gl_VertexID == 1) ? 2.0 : 0.0) / 2.0 * uTexScale * 2.0;
             gl_Position = vec4(vUV * vec2(2.0, -2.0) + vec2(-1.0, 1.0), 1.0, 1.0);
 
             vUpTaps[0] = vec4(vUV + vec2(-uHalfPixel.x * 2.0, 0.0), vUV + vec2(-uHalfPixel.x,  uHalfPixel.y));
@@ -581,11 +607,12 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         #version 310 es
         precision mediump float;
 
+        uniform float uTexScale;
+
         out highp vec2 vUV;
 
         void main() {
-            vUV.x = (gl_VertexID == 2) ? 2.0 : 0.0;
-            vUV.y = (gl_VertexID == 1) ? 2.0 : 0.0;
+            vUV = vec2((gl_VertexID == 2) ? 2.0 : 0.0, (gl_VertexID == 1) ? 2.0 : 0.0) / 2.0 * uTexScale * 2.0;
             gl_Position = vec4(vUV * vec2(2.0, -2.0) + vec2(-1.0, 1.0), 1.0, 1.0);
         }
         """
@@ -613,15 +640,14 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         #version 310 es
         precision mediump float;
 
-        uniform sampler2D uCompositionTexture;
         uniform vec2 uNoiseUVScale;
+        uniform float uTexScale;
 
         out highp vec2 vUV;
         out vec2 vNoiseUV;
 
         void main() {
-            vUV.x = (gl_VertexID == 2) ? 2.0 : 0.0;
-            vUV.y = (gl_VertexID == 1) ? 2.0 : 0.0;
+            vUV = vec2((gl_VertexID == 2) ? 2.0 : 0.0, (gl_VertexID == 1) ? 2.0 : 0.0) / 2.0 * uTexScale * 2.0;
             gl_Position = vec4(vUV * vec2(2.0, -2.0) + vec2(-1.0, 1.0), 1.0, 1.0);
 
             vNoiseUV = vUV * uNoiseUVScale;
