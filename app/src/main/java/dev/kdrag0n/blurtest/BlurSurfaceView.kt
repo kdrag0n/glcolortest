@@ -46,14 +46,17 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
     override fun onTouchEvent(event: MotionEvent?): Boolean {
         if (listenTouch) {
             when (event?.action) {
+                // Middle 1/3 only for profiling double-tap
                 MotionEvent.ACTION_UP -> {
-                    totalTaps++
+                    if (event.y > height / 3 && event.y < height * 2/3) {
+                        totalTaps++
 
-                    if (totalTaps == 2) {
-                        renderer.startProfiling()
-                    } else {
-                        //renderOffscreen = !renderOffscreen
-                        Timber.i("Toggle render offscreen => $renderOffscreen")
+                        if (totalTaps == 2) {
+                            renderer.startProfiling()
+                        } else {
+                            //renderOffscreen = !renderOffscreen
+                            Timber.i("Toggle render offscreen => $renderOffscreen")
+                        }
                     }
                 }
             }
