@@ -35,7 +35,12 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
     private val renderer = BlurRenderer()
     @Volatile private var renderOffscreen = false
     @Volatile private var listenTouch = true
+
     private var totalTaps = 0
+    private var lastY = -1f
+    private var overridePasses = Float.NaN
+    private var overrideOffset = Float.NaN
+    private var lastTapTime = 0L
 
     init {
         setEGLContextClientVersion(3)
@@ -46,18 +51,42 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
     override fun onTouchEvent(event: MotionEvent?): Boolean {
         if (listenTouch) {
             when (event?.action) {
-                // Middle 1/3 only for profiling double-tap
+                // Bottom 1/3 double-tap for profiling
                 MotionEvent.ACTION_UP -> {
-                    if (event.y > height / 3 && event.y < height * 2/3) {
-                        totalTaps++
-
-                        if (totalTaps == 2) {
+                    val now = SystemClock.elapsedRealtime()
+                    if (event.y > height * 2/3) {
+                        if (now - lastTapTime <= 300) {
                             renderer.startProfiling()
-                        } else {
-                            //renderOffscreen = !renderOffscreen
-                            Timber.i("Toggle render offscreen => $renderOffscreen")
+                        }
+
+                        lastTapTime = now
+                    }
+
+                    lastY = -1f
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    // Bottom 2/3:
+                    // Left: passes
+                    // Middle: radius
+                    // Right: offset
+                    if (lastY != -1f && event.y > height / 3) {
+                        if (event.x < width / 3) {
+                            if (overridePasses.isNaN()) {
+                                overridePasses = 0f
+                            }
+                            overridePasses += (lastY - event.y) / 150f
+                        } else if (event.x > width / 3 && event.x < width * 2 / 3) {
+                            renderer.mRadius += (lastY - event.y).toInt()
+                        } else if (event.x > width * 2 / 3) {
+                            if (overrideOffset.isNaN()) {
+                                overrideOffset = 1.0f
+                            }
+                            overrideOffset += (lastY - event.y) / 100f
                         }
                     }
+
+                    Timber.i("Touch overrides: radius=${renderer.mRadius} passes=${overridePasses.toInt()} offset=$overrideOffset")
+                    lastY = event.y
                 }
             }
         }
@@ -107,7 +136,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         private lateinit var mLastDrawTarget: GLFramebuffer
 
         // Blur state
-        private var mRadius = 0
+        var mRadius = kRadius
         private var mPasses = 0
         private var mOffset = 1.0f
 
@@ -242,7 +271,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         }
 
         // Execute blur passes, rendering to offscreen texture.
-        private fun renderPass(read: GLFramebuffer, draw: GLFramebuffer, texScaleLoc: Int, halfPixelLoc: Int, vertexArray: Int) {
+        private fun renderPass(read: GLFramebuffer, draw: GLFramebuffer, texScaleLoc: Int, halfPixelLoc: Int, vertexArray: Int, offset: Float) {
             logDebug("blur to ${draw.width}x${draw.height}")
 
             GLES31.glViewport(0, 0, draw.width, draw.height)
@@ -251,7 +280,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
             // 1/2 pixel offset in texture coordinate (UV) space
             // Note that this is different from NDC!
-            GLES31.glUniform2f(halfPixelLoc, (0.5 / draw.width * mOffset).toFloat(), (0.5 / draw.height * mOffset).toFloat())
+            GLES31.glUniform2f(halfPixelLoc, (0.5 / draw.width * offset).toFloat(), (0.5 / draw.height * offset).toFloat())
             GLES31.glUniform1f(texScaleLoc, 1.0f)
             drawMesh(vertexArray)
         }
@@ -264,9 +293,6 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
             if (radius != mRadius) {
                 mRadius = radius
-                val (passes, offset) = convertGaussianRadius(radius)
-                mPasses = passes
-                mOffset = offset
             }
 
             mCompositionFbo.bind()
@@ -275,6 +301,15 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
         private fun prepare() {
             GLES31.glActiveTexture(GLES31.GL_TEXTURE0)
+
+            var (passes, offset) = convertGaussianRadius(mRadius)
+            if (!overridePasses.isNaN()) {
+                passes = overridePasses.toInt()
+            }
+            if (!overrideOffset.isNaN()) {
+                offset = overrideOffset
+            }
+            passes = min(passes, kMaxPasses)
 
             var read = mCompositionFbo
             var draw = mPassFbos[0]
@@ -291,19 +326,19 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
             // Downsample
             GLES31.glUseProgram(mDownsampleProgram)
-            for (i in 0 until mPasses) {
+            for (i in 0 until passes) {
                 read = mPassFbos[i]
                 draw = mPassFbos[i + 1]
-                renderPass(read, draw, mDTexScaleLoc, mDHalfPixelLoc, mDVertexArray)
+                renderPass(read, draw, mDTexScaleLoc, mDHalfPixelLoc, mDVertexArray, offset)
             }
 
             // Upsample
             GLES31.glUseProgram(mUpsampleProgram)
-            for (i in 0 until mPasses) {
+            for (i in 0 until passes) {
                 // Upsampling uses buffers in the reverse direction
-                read = mPassFbos[mPasses - i]
-                draw = mPassFbos[mPasses - i - 1]
-                renderPass(read, draw, mUTexScaleLoc, mUHalfPixelLoc, mUVertexArray)
+                read = mPassFbos[passes - i]
+                draw = mPassFbos[passes - i - 1]
+                renderPass(read, draw, mUTexScaleLoc, mUHalfPixelLoc, mUVertexArray, offset)
             }
 
             mLastDrawTarget = draw
@@ -347,7 +382,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
         private fun drawFrame(fbId: Int): Long {
             // Render background
-            setAsDrawTarget(mWidth, mHeight, kRadius)
+            setAsDrawTarget(mWidth, mHeight, mRadius)
             GLES31.glUseProgram(mPassthroughProgram)
             GLES31.glActiveTexture(GLES31.GL_TEXTURE0)
             GLES31.glBindTexture(GLES31.GL_TEXTURE_2D, mBackgroundFbo.texture)
@@ -366,7 +401,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
                     GLES31.glViewport(0, 0, mWidth, mHeight)
                 } else {
                     // Next blur pass
-                    setAsDrawTarget(mWidth, mHeight, kRadius)
+                    setAsDrawTarget(mWidth, mHeight, mRadius)
                 }
                 render(kLayers, i)
             }
