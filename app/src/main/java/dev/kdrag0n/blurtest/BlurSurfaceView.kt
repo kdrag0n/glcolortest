@@ -494,8 +494,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             /* limited by kMaxPasses */
         )
 
-        private const val PASSTHROUGH_FRAG_SHADER = """
-        #version 310 es
+        private const val PASSTHROUGH_FRAG_SHADER = """#version 310 es
         precision mediump float;
 
         uniform sampler2D uTexture;
@@ -508,8 +507,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         }
         """
 
-        private const val PASSTHROUGH_VERT_SHADER = """
-        #version 310 es
+        private const val PASSTHROUGH_VERT_SHADER = """#version 310 es
         precision mediump float;
 
         uniform vec2 uNoiseUVScale;
@@ -523,8 +521,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         }
         """
 
-        private const val DOWNSAMPLE_VERT_SHADER = """
-        #version 310 es
+        private const val DOWNSAMPLE_VERT_SHADER = """#version 310 es
         precision mediump float;
 
         uniform vec2 uHalfPixel;
@@ -542,8 +539,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         }
         """
 
-        private const val DOWNSAMPLE_FRAG_SHADER = """
-        #version 310 es
+        private const val DOWNSAMPLE_FRAG_SHADER = """#version 310 es
         precision mediump float;
 
         uniform sampler2D uTexture;
@@ -562,8 +558,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         }
         """
 
-        private const val UPSAMPLE_VERT_SHADER = """
-        #version 310 es
+        private const val UPSAMPLE_VERT_SHADER = """#version 310 es
         precision mediump float;
 
         uniform vec2 uHalfPixel;
@@ -583,8 +578,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         }
         """
 
-        private const val UPSAMPLE_FRAG_SHADER = """
-        #version 310 es
+        private const val UPSAMPLE_FRAG_SHADER = """#version 310 es
         precision mediump float;
 
         uniform sampler2D uTexture;
@@ -603,8 +597,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         }
         """
 
-        private const val MIX_VERT_SHADER = """
-        #version 310 es
+        private const val MIX_VERT_SHADER = """#version 310 es
         precision mediump float;
 
         uniform float uTexScale;
@@ -617,8 +610,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         }
         """
 
-        private const val MIX_FRAG_SHADER = """
-        #version 310 es
+        private const val MIX_FRAG_SHADER = """#version 310 es
         precision mediump float;
 
         uniform sampler2D uCompositionTexture;
@@ -636,8 +628,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         }
         """
 
-        private const val DITHER_MIX_VERT_SHADER = """
-        #version 310 es
+        private const val DITHER_MIX_VERT_SHADER = """#version 310 es
         precision mediump float;
 
         uniform vec2 uNoiseUVScale;
@@ -654,8 +645,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         }
         """
 
-        private const val DITHER_MIX_FRAG_SHADER = """
-        #version 310 es
+        private const val DITHER_MIX_FRAG_SHADER = """#version 310 es
         precision mediump float;
 
         uniform sampler2D uCompositionTexture;
