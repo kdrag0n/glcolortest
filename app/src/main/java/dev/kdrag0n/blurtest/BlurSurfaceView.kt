@@ -137,8 +137,6 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
         // Blur state
         var mRadius = kRadius
-        private var mPasses = 0
-        private var mOffset = 1.0f
 
         // Misc state
         private var mWidth = 0
@@ -252,16 +250,16 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             mHeight = height
         }
 
-        private fun convertGaussianRadius(radius: Int): Pair<Int, Float> {
+        private fun convertGaussianRadius(radius: Float): Pair<Int, Float> {
             for (i in 0 until kMaxPasses) {
                 val offsetRange = kOffsetRanges[i]
-                val offset = (radius * kFboScale / (2.0).pow(i + 1)).toFloat()
+                val offset = radius * kFboScale / (2.0f).pow(i + 1)
                 if (offset in offsetRange) {
                     return (i + 1) to offset
                 }
             }
 
-            return 1 to (radius * kFboScale / (2.0).pow(1)).toFloat()
+            return 1 to radius * kFboScale / (2.0f).pow(1)
         }
 
         private fun drawMesh(vertexArray: Int) {
@@ -271,17 +269,19 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         }
 
         // Execute blur passes, rendering to offscreen texture.
-        private fun renderPass(read: GLFramebuffer, draw: GLFramebuffer, texScaleLoc: Int, halfPixelLoc: Int, vertexArray: Int, offset: Float) {
-            logDebug("blur to ${draw.width}x${draw.height}")
+        private fun renderPass(read: GLFramebuffer, draw: GLFramebuffer, texScaleLoc: Int, halfPixelLoc: Int, vertexArray: Int, scale: Float, offset: Float) {
+            val targetWidth = (draw.width * scale).toInt()
+            val targetHeight = (draw.height * scale).toInt()
+            logDebug("blur to ${targetWidth}x${targetHeight}")
 
-            GLES31.glViewport(0, 0, draw.width, draw.height)
+            GLES31.glViewport(0, 0, targetWidth, targetHeight)
             GLES31.glBindTexture(GLES31.GL_TEXTURE_2D, read.texture)
             draw.bind()
 
             // 1/2 pixel offset in texture coordinate (UV) space
             // Note that this is different from NDC!
-            GLES31.glUniform2f(halfPixelLoc, (0.5 / draw.width * offset).toFloat(), (0.5 / draw.height * offset).toFloat())
-            GLES31.glUniform1f(texScaleLoc, 1.0f)
+            GLES31.glUniform2f(halfPixelLoc, 0.5f / targetWidth * offset, 0.5f / targetHeight * offset)
+            GLES31.glUniform1f(texScaleLoc, scale)
             drawMesh(vertexArray)
         }
 
@@ -299,10 +299,10 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             GLES31.glViewport(0, 0, width, height)
         }
 
-        private fun prepare() {
+        private fun prepare(layers: Int, currentLayer: Int, scale: Float) {
             GLES31.glActiveTexture(GLES31.GL_TEXTURE0)
 
-            var (passes, offset) = convertGaussianRadius(mRadius)
+            var (passes, offset) = convertGaussianRadius(mRadius * scale)
             if (!overridePasses.isNaN()) {
                 passes = overridePasses.toInt()
             }
@@ -318,18 +318,18 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             // This initial downscaling blit makes the first pass correct and improves performance.
             GLES31.glBlitFramebuffer(
                 0, 0, read.width, read.height,
-                0, 0, draw.width, draw.height,
+                0, 0, (draw.width * scale).toInt(), (draw.height * scale).toInt(),
                 GLES31.GL_COLOR_BUFFER_BIT, GLES31.GL_LINEAR
             )
 
-            logDebug("Prepare - initial dims ${draw.width}x${draw.height}")
+            logDebug("Prepare - initial dims ${draw.width * scale}x${draw.height * scale}")
 
             // Downsample
             GLES31.glUseProgram(mDownsampleProgram)
             for (i in 0 until passes) {
                 read = mPassFbos[i]
                 draw = mPassFbos[i + 1]
-                renderPass(read, draw, mDTexScaleLoc, mDHalfPixelLoc, mDVertexArray, offset)
+                renderPass(read, draw, mDTexScaleLoc, mDHalfPixelLoc, mDVertexArray, scale, offset)
             }
 
             // Upsample
@@ -338,14 +338,14 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
                 // Upsampling uses buffers in the reverse direction
                 read = mPassFbos[passes - i]
                 draw = mPassFbos[passes - i - 1]
-                renderPass(read, draw, mUTexScaleLoc, mUHalfPixelLoc, mUVertexArray, offset)
+                renderPass(read, draw, mUTexScaleLoc, mUHalfPixelLoc, mUVertexArray, scale, offset)
             }
 
             mLastDrawTarget = draw
         }
 
         // Render blur to the bound framebuffer (screen).
-        private fun render(layers: Int, currentLayer: Int) {
+        private fun render(layers: Int, currentLayer: Int, scale: Float) {
             // Now let's scale our blur up. It will be interpolated with the larger composited
             // texture for the first frames, to hide downscaling artifacts.
             val opacity = min(1.0f, mRadius / kMaxCrossFadeRadius)
@@ -355,11 +355,11 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
                 GLES31.glUseProgram(mDitherMixProgram)
                 GLES31.glUniform1f(mDMBlurOpacityLoc, opacity)
                 GLES31.glUniform2f(mDMNoiseUVScaleLoc, (1.0 / 64.0 * mWidth).toFloat(), (1.0 / 64.0 * mHeight).toFloat())
-                GLES31.glUniform1f(mDMTexScaleLoc, 1.0f)
+                GLES31.glUniform1f(mDMTexScaleLoc, scale)
             } else {
                 GLES31.glUseProgram(mMixProgram)
                 GLES31.glUniform1f(mMBlurOpacityLoc, opacity)
-                GLES31.glUniform1f(mMTexScaleLoc, 1.0f)
+                GLES31.glUniform1f(mMTexScaleLoc, scale)
             }
             logDebug("render - layers=$layers current=$currentLayer dither=${currentLayer == layers - 1}")
 
@@ -393,7 +393,8 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             // Blur
             val beforeBlur = SystemClock.elapsedRealtimeNanos()
             for (i in 0 until kLayers) {
-                prepare()
+                val scale = if (kLayers >= 2 && i != kLayers - 1) 0.5f else 1.0f
+                prepare(kLayers, i, scale)
 
                 if (i == kLayers - 1) {
                     // Dither out to display
@@ -403,7 +404,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
                     // Next blur pass
                     setAsDrawTarget(mWidth, mHeight, mRadius)
                 }
-                render(kLayers, i)
+                render(kLayers, i, scale)
             }
             GLES31.glFinish()
             return SystemClock.elapsedRealtimeNanos() - beforeBlur
@@ -581,6 +582,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         precision mediump float;
 
         uniform sampler2D uTexture;
+        uniform float uTexScale;
 
         in highp vec2 vUV;
         in vec4 vDownTaps[2];
@@ -589,8 +591,8 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         void main() {
             vec3 sum = texture(uTexture, vUV).rgb * 4.0;
             for (int i = 0; i < 2; ++i) {
-                sum += texture(uTexture, vDownTaps[i].xy).rgb;
-                sum += texture(uTexture, vDownTaps[i].zw).rgb;
+                sum += texture(uTexture, min(vDownTaps[i].xy, uTexScale - (vec2(1.0) / vec2(textureSize(uTexture, 0))))).rgb;
+                sum += texture(uTexture, min(vDownTaps[i].zw, uTexScale - (vec2(1.0) / vec2(textureSize(uTexture, 0))))).rgb;
             }
             fragColor = vec4(sum * 0.125, 1.0);
         }
@@ -621,6 +623,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         precision mediump float;
 
         uniform sampler2D uTexture;
+        uniform float uTexScale;
 
         in highp vec2 vUV;
         in vec4 vUpTaps[4];
@@ -629,8 +632,8 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         void main() {
             vec3 sum = vec3(0.0);
             for (int i = 0; i < 4; ++i) {
-                sum += texture(uTexture, vUpTaps[i].xy).rgb;
-                sum += texture(uTexture, vUpTaps[i].zw).rgb * 2.0;
+                sum += texture(uTexture, min(vUpTaps[i].xy, uTexScale - (vec2(1.0) / vec2(textureSize(uTexture, 0))))).rgb;
+                sum += texture(uTexture, min(vUpTaps[i].zw, uTexScale - (vec2(1.0) / vec2(textureSize(uTexture, 0))))).rgb * 2.0;
             }
             fragColor = vec4(sum * 0.08333333333333333, 1.0);
         }
@@ -657,12 +660,13 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         uniform sampler2D uBlurredTexture;
         uniform sampler2D uDitherTexture;
         uniform float uBlurOpacity;
+        uniform float uTexScale;
 
         in highp vec2 vUV;
         out vec4 fragColor;
 
         void main() {
-            vec3 blurred = texture(uBlurredTexture, vUV).rgb;
+            vec3 blurred = texture(uBlurredTexture, min(vUV, uTexScale - (vec2(1.0) / vec2(textureSize(uBlurredTexture, 0))))).rgb;
             vec3 composition = texture(uCompositionTexture, vUV).rgb;
             fragColor = vec4(mix(composition, blurred, 1.0), 1.0);
         }
@@ -693,6 +697,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         uniform sampler2D uBlurredTexture;
         uniform sampler2D uDitherTexture;
         uniform float uBlurOpacity;
+        uniform float uTexScale;
 
         in highp vec2 vUV;
         in vec2 vNoiseUV;
@@ -700,7 +705,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
         void main() {
             vec3 dither = (texture(uDitherTexture, vNoiseUV).rgb - 0.5) * 0.015625;
-            vec3 blurred = texture(uBlurredTexture, vUV).rgb + dither;
+            vec3 blurred = texture(uBlurredTexture, min(vUV, uTexScale - (vec2(1.0) / vec2(textureSize(uBlurredTexture, 0))))).rgb + dither;
             vec3 composition = texture(uCompositionTexture, vUV).rgb;
             fragColor = vec4(mix(composition, blurred, 1.0), 1.0);
         }
