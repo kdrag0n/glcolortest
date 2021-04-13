@@ -149,6 +149,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         @Volatile private var monitorFpsBg = true
         @Volatile private var totalRenderNanos = 0L
         @Volatile private var totalRenderFrames = 0
+        private val profileFrameTimes = LongArray(30000)
 
         /*
          * Blur implementation
@@ -423,12 +424,13 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
                 drawFrame(0)
                 framesRenderedDisplay++
             } else {
-                // Render off-screen after this for profiling
-                // We never return after this point as we're in a tight FPS measurement loop.
-                while (renderOffscreen) {
-                    val delta = drawFrame(mFinalFbo.framebuffer)
-                    totalRenderNanos += delta
-                    totalRenderFrames++
+                synchronized(profileFrameTimes) {
+                    // Render off-screen after this for profiling
+                    // We never return after this point as we're in a tight FPS measurement loop.
+                    while (renderOffscreen) {
+                        val delta = drawFrame(mFinalFbo.framebuffer)
+                        profileFrameTimes[totalRenderFrames++] = delta
+                    }
                 }
             }
         }
@@ -448,12 +450,23 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
         private fun calcFrameTimeMs(): Double {
             // TODO: moving average
-            return (totalRenderNanos.toDouble() / 1e6) / totalRenderFrames.toDouble()
+            synchronized(profileFrameTimes) {
+                val frames = profileFrameTimes.sliceArray(0 until totalRenderFrames)
+                frames.sort()
+                return if (frames.size % 2 == 0) {
+                    (frames[frames.size / 2] + frames[frames.size / 2 - 1]).toDouble() / 2.0
+                } else {
+                    frames[frames.size / 2].toDouble()
+                } / 1e6
+            }
         }
 
         private fun resetFrameProfiling() {
-            totalRenderNanos = 0L
-            totalRenderFrames = 0
+            synchronized(profileFrameTimes) {
+                profileFrameTimes.indices.forEach { profileFrameTimes[it] = 0L }
+                totalRenderNanos = 0L
+                totalRenderFrames = 0
+            }
         }
 
         private fun startFpsMonitor() {
@@ -481,6 +494,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
                 // Sample
                 Thread.sleep(30000)
+                renderOffscreen = false
                 val frameTimeMs = calcFrameTimeMs()
                 val formattedMs = String.format("%.3f", frameTimeMs)
 
