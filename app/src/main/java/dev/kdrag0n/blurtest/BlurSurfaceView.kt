@@ -717,10 +717,24 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             return clamp(x * FLT_MAX + 0.5, 0.0, 1.0) * 2.0 - 1.0;
         }
 
+        vec3 linearToSrgb(vec3 color) {
+            float r = color.r < 0.0031308 ? 12.92 * color.r : 1.055 * pow(color.r, 1.0/2.4) - 0.055;
+            float g = color.g < 0.0031308 ? 12.92 * color.g : 1.055 * pow(color.g, 1.0/2.4) - 0.055;
+            float b = color.b < 0.0031308 ? 12.92 * color.b : 1.055 * pow(color.b, 1.0/2.4) - 0.055;
+            return vec3(r, g, b);
+        }
+
+        vec3 srgbToLinear(vec3 color) {
+            float r = color.r < 0.04045 ? (1.0 / 12.92) * color.r : pow((color.r + 0.055) * (1.0 / 1.055), 2.4);
+            float g = color.g < 0.04045 ? (1.0 / 12.92) * color.g : pow((color.g + 0.055) * (1.0 / 1.055), 2.4);
+            float b = color.b < 0.04045 ? (1.0 / 12.92) * color.b : pow((color.b + 0.055) * (1.0 / 1.055), 2.4);
+            return vec3(r, g, b);
+        }
+
         void main() {
             vec3 dither = texture(uDitherTexture, vNoiseUV).rgb * 2.0 - 1.0;
             dither = fast_sign(dither) * (1.0 - sqrt(1.0 - abs(dither))) * 0.00392156862745098;
-            vec3 blurred = texture(uBlurredTexture, vUV).rgb + dither;
+            vec3 blurred = srgbToLinear(linearToSrgb(texture(uBlurredTexture, vUV).rgb) + dither);
             vec3 composition = texture(uCompositionTexture, vUV).rgb;
             fragColor = vec4(mix(composition, blurred, 1.0), 1.0);
         }
