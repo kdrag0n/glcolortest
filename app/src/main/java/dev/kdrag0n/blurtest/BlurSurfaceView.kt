@@ -718,17 +718,11 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         }
 
         vec3 srgbToLinear(vec3 srgb) {
-            vec3 linearRgb = srgb * 12.92;
-            vec3 gammaRgb = (pow(srgb, vec3(1.0 / 2.4)) * 1.055) - 0.055;
-            bvec3 selectParts = lessThan(srgb, vec3(0.0031308));
-            return mix(linearRgb, gammaRgb, selectParts);
+            return pow(srgb, vec3(1.0 / 2.2));
         }
 
         vec3 linearToSrgb(vec3 linear) {
-            vec3 srgbLinear = linear / 12.92;
-            vec3 srgbGamma = pow((linear + 0.055) / 1.055, vec3(2.4));
-            bvec3 selectParts = lessThan(linear, vec3(0.04045));
-            return mix(srgbLinear, srgbGamma, selectParts);
+            return pow(linear, vec3(2.2));
         }
 
         void main() {
