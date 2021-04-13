@@ -714,7 +714,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
         void main() {
             vec3 dither = texture(uDitherTexture, vNoiseUV).rgb * 2.0 - 1.0;
-            dither = sign(dither) * (1.0 - sqrt(1.0 - abs(dither))) * 0.015625;
+            dither = sign(dither) * (1.0 - sqrt(1.0 - abs(dither))) * 0.00392156862745098;
             vec3 blurred = texture(uBlurredTexture, vUV).rgb + dither;
             vec3 composition = texture(uCompositionTexture, vUV).rgb;
             fragColor = vec4(mix(composition, blurred, 1.0), 1.0);
