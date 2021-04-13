@@ -717,18 +717,18 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             return clamp(x * FLT_MAX + 0.5, 0.0, 1.0) * 2.0 - 1.0;
         }
 
-        vec3 linearToSrgb(vec3 color) {
-            float r = color.r < 0.0031308 ? 12.92 * color.r : 1.055 * pow(color.r, 1.0/2.4) - 0.055;
-            float g = color.g < 0.0031308 ? 12.92 * color.g : 1.055 * pow(color.g, 1.0/2.4) - 0.055;
-            float b = color.b < 0.0031308 ? 12.92 * color.b : 1.055 * pow(color.b, 1.0/2.4) - 0.055;
-            return vec3(r, g, b);
+        vec3 srgbToLinear(vec3 srgb) {
+            vec3 linearRgb = srgb * 12.92;
+            vec3 gammaRgb = (pow(srgb, vec3(1.0 / 2.4)) * 1.055) - 0.055;
+            bvec3 selectParts = lessThan(srgb, vec3(0.0031308));
+            return mix(linearRgb, gammaRgb, selectParts);
         }
 
-        vec3 srgbToLinear(vec3 color) {
-            float r = color.r < 0.04045 ? (1.0 / 12.92) * color.r : pow((color.r + 0.055) * (1.0 / 1.055), 2.4);
-            float g = color.g < 0.04045 ? (1.0 / 12.92) * color.g : pow((color.g + 0.055) * (1.0 / 1.055), 2.4);
-            float b = color.b < 0.04045 ? (1.0 / 12.92) * color.b : pow((color.b + 0.055) * (1.0 / 1.055), 2.4);
-            return vec3(r, g, b);
+        vec3 linearToSrgb(vec3 linear) {
+            vec3 srgbLinear = linear / 12.92;
+            vec3 srgbGamma = pow((linear + 0.055) / 1.055, vec3(2.4));
+            bvec3 selectParts = lessThan(linear, vec3(0.04045));
+            return mix(srgbLinear, srgbGamma, selectParts);
         }
 
         void main() {
