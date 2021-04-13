@@ -718,11 +718,11 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         }
 
         vec3 srgbToLinear(vec3 srgb) {
-            return pow(srgb, vec3(1.0 / 2.2));
+            return srgb * srgb;
         }
 
         vec3 linearToSrgb(vec3 linear) {
-            return pow(linear, vec3(2.2));
+            return sqrt(linear);
         }
 
         void main() {
