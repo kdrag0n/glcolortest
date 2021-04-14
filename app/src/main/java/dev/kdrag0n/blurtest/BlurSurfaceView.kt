@@ -271,6 +271,8 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             GLES31.glBindVertexArray(0)
         }
 
+        private val invalArray = intArrayOf(GLES31.GL_COLOR_ATTACHMENT0)
+
         // Execute blur passes, rendering to offscreen texture.
         private fun renderPass(read: GLFramebuffer, draw: GLFramebuffer, texScaleLoc: Int, halfPixelLoc: Int, vertexArray: Int, offset: Float) {
             logDebug("blur to ${draw.width}x${draw.height}")
@@ -278,6 +280,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             GLES31.glViewport(0, 0, draw.width, draw.height)
             GLES31.glBindTexture(GLES31.GL_TEXTURE_2D, read.texture)
             draw.bind()
+            GLES31.glInvalidateFramebuffer(GLES31.GL_FRAMEBUFFER, 1, invalArray, 0)
 
             // 1/2 pixel offset in texture coordinate (UV) space
             // Note that this is different from NDC!
@@ -297,6 +300,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             }
 
             mCompositionFbo.bind()
+            GLES31.glInvalidateFramebuffer(GLES31.GL_FRAMEBUFFER, 1, invalArray, 0)
             GLES31.glViewport(0, 0, width, height)
         }
 
@@ -316,6 +320,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             var draw = mPassFbos[0]
             read.bindAsReadBuffer()
             draw.bindAsDrawBuffer()
+            GLES31.glInvalidateFramebuffer(GLES31.GL_FRAMEBUFFER, 1, invalArray, 0)
             // This initial downscaling blit makes the first pass correct and improves performance.
             GLES31.glBlitFramebuffer(
                 0, 0, read.width, read.height,
