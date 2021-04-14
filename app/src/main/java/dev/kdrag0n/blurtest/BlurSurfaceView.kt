@@ -608,10 +608,10 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
         void main() {
             vec3 sum = texture(uTexture, vUV).rgb * 4.0;
-            for (int i = 0; i < 2; ++i) {
-                sum += texture(uTexture, vDownTaps[i].xy).rgb;
-                sum += texture(uTexture, vDownTaps[i].zw).rgb;
-            }
+            sum += texture(uTexture, vDownTaps[0].xy).rgb;
+            sum += texture(uTexture, vDownTaps[0].zw).rgb;
+            sum += texture(uTexture, vDownTaps[1].xy).rgb;
+            sum += texture(uTexture, vDownTaps[1].zw).rgb;
             fragColor = vec4(sum / 8.0, 1.0);
         }
         """
@@ -648,10 +648,14 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
         void main() {
             vec3 sum = vec3(0.0);
-            for (int i = 0; i < 4; ++i) {
-                sum += texture(uTexture, vUpTaps[i].xy).rgb;
-                sum += texture(uTexture, vUpTaps[i].zw).rgb * 2.0;
-            }
+            sum += texture(uTexture, vUpTaps[0].xy).rgb;
+            sum += texture(uTexture, vUpTaps[0].zw).rgb * 2.0;
+            sum += texture(uTexture, vUpTaps[1].xy).rgb;
+            sum += texture(uTexture, vUpTaps[1].zw).rgb * 2.0;
+            sum += texture(uTexture, vUpTaps[2].xy).rgb;
+            sum += texture(uTexture, vUpTaps[2].zw).rgb * 2.0;
+            sum += texture(uTexture, vUpTaps[3].xy).rgb;
+            sum += texture(uTexture, vUpTaps[3].zw).rgb * 2.0;
             fragColor = vec4(sum / 12.0, 1.0);
         }
         """
