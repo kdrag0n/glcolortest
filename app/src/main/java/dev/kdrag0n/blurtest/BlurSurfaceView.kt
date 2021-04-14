@@ -470,6 +470,8 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         }
 
         private fun startFpsMonitor() {
+            return
+
             thread(name = "Blur FPS Monitor", isDaemon = true) {
                 while (monitorFpsBg) {
                     Thread.sleep(1000)
@@ -489,8 +491,12 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
             Timber.i("autoProfile: Preparing to profile")
             systemBoost {
-                Thread.sleep(15000)
+                Thread.sleep(14500)
                 Timber.i("Starting auto-profile rendering")
+                renderOffscreen = false
+                resetFrameProfiling()
+                renderOffscreen = true
+                Thread.sleep(500)
 
                 // Sample
                 Thread.sleep(30000)
