@@ -585,15 +585,17 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         uniform float uTexScale;
 
         out vec2 vUV;
-        out vec4 vDownTaps[2];
+        out vec2 vDownTaps[4];
 
         void main() {
             vUV = vec2((gl_VertexID == 2) ? 2.0 : 0.0, (gl_VertexID == 1) ? 2.0 : 0.0);
             gl_Position = vec4(vUV * vec2(2.0, -2.0) + vec2(-1.0, 1.0), 1.0, 1.0);
             vUV *= uTexScale;
 
-            vDownTaps[0] = vec4(vUV - uHalfPixel.xy, vUV + uHalfPixel.xy);
-            vDownTaps[1] = vec4(vUV + vec2(uHalfPixel.x, -uHalfPixel.y), vUV - vec2(uHalfPixel.x, -uHalfPixel.y));
+            vDownTaps[0] = vUV - uHalfPixel.xy;
+            vDownTaps[1] = vUV + uHalfPixel.xy;
+            vDownTaps[2] = vUV + vec2(uHalfPixel.x, -uHalfPixel.y);
+            vDownTaps[3] = vUV - vec2(uHalfPixel.x, -uHalfPixel.y);
         }
         """
 
@@ -603,15 +605,15 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         uniform sampler2D uTexture;
 
         in vec2 vUV;
-        in vec4 vDownTaps[2];
+        in vec2 vDownTaps[4];
         out vec4 fragColor;
 
         void main() {
             vec3 sum = texture(uTexture, vUV).rgb * 4.0;
-            sum += texture(uTexture, vDownTaps[0].xy).rgb;
-            sum += texture(uTexture, vDownTaps[0].zw).rgb;
-            sum += texture(uTexture, vDownTaps[1].xy).rgb;
-            sum += texture(uTexture, vDownTaps[1].zw).rgb;
+            sum += texture(uTexture, vDownTaps[0]).rgb;
+            sum += texture(uTexture, vDownTaps[1]).rgb;
+            sum += texture(uTexture, vDownTaps[2]).rgb;
+            sum += texture(uTexture, vDownTaps[3]).rgb;
             fragColor = vec4(sum / 8.0, 1.0);
         }
         """
@@ -623,17 +625,21 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         uniform float uTexScale;
 
         out vec2 vUV;
-        out vec4 vUpTaps[4];
+        out vec2 vUpTaps[8];
 
         void main() {
             vUV = vec2((gl_VertexID == 2) ? 2.0 : 0.0, (gl_VertexID == 1) ? 2.0 : 0.0);
             gl_Position = vec4(vUV * vec2(2.0, -2.0) + vec2(-1.0, 1.0), 1.0, 1.0);
             vUV *= uTexScale;
 
-            vUpTaps[0] = vec4(vUV + vec2(-uHalfPixel.x * 2.0, 0.0), vUV + vec2(-uHalfPixel.x,  uHalfPixel.y));
-            vUpTaps[1] = vec4(vUV + vec2(0.0,  uHalfPixel.y * 2.0), vUV + vec2( uHalfPixel.x,  uHalfPixel.y));
-            vUpTaps[2] = vec4(vUV + vec2( uHalfPixel.x * 2.0, 0.0), vUV + vec2( uHalfPixel.x, -uHalfPixel.y));
-            vUpTaps[3] = vec4(vUV + vec2(0.0, -uHalfPixel.y * 2.0), vUV + vec2(-uHalfPixel.x, -uHalfPixel.y));
+            vUpTaps[0] = vUV + vec2(-uHalfPixel.x * 2.0, 0.0);
+            vUpTaps[1] = vUV + vec2(-uHalfPixel.x,  uHalfPixel.y);
+            vUpTaps[2] = vUV + vec2(0.0,  uHalfPixel.y * 2.0);
+            vUpTaps[3] = vUV + vec2( uHalfPixel.x,  uHalfPixel.y);
+            vUpTaps[4] = vUV + vec2( uHalfPixel.x * 2.0, 0.0);
+            vUpTaps[5] = vUV + vec2( uHalfPixel.x, -uHalfPixel.y);
+            vUpTaps[6] = vUV + vec2(0.0, -uHalfPixel.y * 2.0);
+            vUpTaps[7] = vUV + vec2(-uHalfPixel.x, -uHalfPixel.y);
         }
         """
 
@@ -643,19 +649,19 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         uniform sampler2D uTexture;
 
         in vec2 vUV;
-        in vec4 vUpTaps[4];
+        in vec2 vUpTaps[8];
         out vec4 fragColor;
 
         void main() {
             vec3 sum = vec3(0.0);
-            sum += texture(uTexture, vUpTaps[0].xy).rgb;
-            sum += texture(uTexture, vUpTaps[0].zw).rgb * 2.0;
-            sum += texture(uTexture, vUpTaps[1].xy).rgb;
-            sum += texture(uTexture, vUpTaps[1].zw).rgb * 2.0;
-            sum += texture(uTexture, vUpTaps[2].xy).rgb;
-            sum += texture(uTexture, vUpTaps[2].zw).rgb * 2.0;
-            sum += texture(uTexture, vUpTaps[3].xy).rgb;
-            sum += texture(uTexture, vUpTaps[3].zw).rgb * 2.0;
+            sum += texture(uTexture, vUpTaps[0]).rgb;
+            sum += texture(uTexture, vUpTaps[1]).rgb * 2.0;
+            sum += texture(uTexture, vUpTaps[2]).rgb;
+            sum += texture(uTexture, vUpTaps[3]).rgb * 2.0;
+            sum += texture(uTexture, vUpTaps[4]).rgb;
+            sum += texture(uTexture, vUpTaps[5]).rgb * 2.0;
+            sum += texture(uTexture, vUpTaps[6]).rgb;
+            sum += texture(uTexture, vUpTaps[7]).rgb * 2.0;
             fragColor = vec4(sum / 12.0, 1.0);
         }
         """
