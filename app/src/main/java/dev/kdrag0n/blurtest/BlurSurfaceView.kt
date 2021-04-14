@@ -314,13 +314,21 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
             var read = mCompositionFbo
             var draw = mPassFbos[0]
+            read.bindAsReadBuffer()
+            draw.bindAsDrawBuffer()
+            // This initial downscaling blit makes the first pass correct and improves performance.
+            GLES31.glBlitFramebuffer(
+                0, 0, read.width, read.height,
+                0, 0, draw.width, draw.height,
+                GLES31.GL_COLOR_BUFFER_BIT, GLES31.GL_LINEAR
+            )
 
             logDebug("Prepare - initial dims ${draw.width}x${draw.height}")
 
             // Downsample
             GLES31.glUseProgram(mDownsampleProgram)
             for (i in 0 until passes) {
-                read = if (i == 0) mCompositionFbo else mPassFbos[i]
+                read = mPassFbos[i]
                 draw = mPassFbos[i + 1]
                 renderPass(read, draw, mDTexScaleLoc, mDHalfPixelLoc, mDVertexArray, offset)
             }
