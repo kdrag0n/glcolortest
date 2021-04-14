@@ -655,13 +655,13 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         void main() {
             vec3 sum = vec3(0.0);
             sum += texture(uTexture, vUpTaps[0]).rgb;
-            sum += texture(uTexture, vUpTaps[1]).rgb * 2.0;
             sum += texture(uTexture, vUpTaps[2]).rgb;
-            sum += texture(uTexture, vUpTaps[3]).rgb * 2.0;
             sum += texture(uTexture, vUpTaps[4]).rgb;
-            sum += texture(uTexture, vUpTaps[5]).rgb * 2.0;
             sum += texture(uTexture, vUpTaps[6]).rgb;
-            sum += texture(uTexture, vUpTaps[7]).rgb * 2.0;
+            sum += (texture(uTexture, vUpTaps[1]).rgb +
+                    texture(uTexture, vUpTaps[3]).rgb +
+                    texture(uTexture, vUpTaps[5]).rgb +
+                    texture(uTexture, vUpTaps[7]).rgb) * 2.0;
             fragColor = vec4(sum / 12.0, 1.0);
         }
         """
