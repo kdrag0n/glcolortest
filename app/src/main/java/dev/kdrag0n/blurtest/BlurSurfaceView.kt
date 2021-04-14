@@ -695,11 +695,14 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         uniform float uTexScale;
 
         out vec2 vUV;
+        out vec2 vNoiseUV;
 
         void main() {
             vUV = vec2((gl_VertexID == 2) ? 2.0 : 0.0, (gl_VertexID == 1) ? 2.0 : 0.0);
             gl_Position = vec4(vUV * vec2(2.0, -2.0) + vec2(-1.0, 1.0), 1.0, 1.0);
             vUV *= uTexScale;
+
+            vNoiseUV = vUV * uNoiseUVScale;
         }
         """
 
@@ -712,6 +715,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         uniform float uBlurOpacity;
 
         in vec2 vUV;
+        in vec2 vNoiseUV;
         out vec4 fragColor;
 
         #define FLT_MAX 3.402823466e+38
@@ -728,7 +732,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         }
 
         void main() {
-            vec3 dither = texture(uDitherTexture, gl_FragCoord.xy * 0.015625).rgb * 2.0 - 1.0;
+            vec3 dither = texture(uDitherTexture, vNoiseUV).rgb * 2.0 - 1.0;
             dither = fast_sign(dither) * (1.0 - sqrt(1.0 - abs(dither))) * 0.015625;
             vec3 blurred = srgbToLinear(linearToSrgb(texture(uBlurredTexture, vUV).rgb) + dither);
             vec3 composition = texture(uCompositionTexture, vUV).rgb;
