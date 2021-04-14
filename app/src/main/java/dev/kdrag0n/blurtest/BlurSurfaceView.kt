@@ -360,7 +360,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             if (currentLayer == layers - 1) {
                 GLES31.glUseProgram(mDitherMixProgram)
                 GLES31.glUniform1f(mDMBlurOpacityLoc, opacity)
-                GLES31.glUniform2f(mDMNoiseUVScaleLoc, (1.0 / 64.0 * mWidth).toFloat(), (1.0 / 64.0 * mHeight).toFloat())
+                GLES31.glUniform2f(mDMNoiseUVScaleLoc, (1.0 / 16.0 * mWidth).toFloat(), (1.0 / 16.0 * mHeight).toFloat())
                 GLES31.glUniform1f(mDMTexScaleLoc, 1.0f)
             } else {
                 GLES31.glUseProgram(mMixProgram)
