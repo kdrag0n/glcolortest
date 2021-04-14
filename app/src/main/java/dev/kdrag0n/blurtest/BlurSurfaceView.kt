@@ -551,7 +551,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
         uniform sampler2D uTexture;
 
-        in highp vec2 vUV;
+        in vec2 vUV;
         out vec4 fragColor;
 
         void main() {
@@ -564,7 +564,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
         uniform vec2 uNoiseUVScale;
 
-        out highp vec2 vUV;
+        out vec2 vUV;
 
         void main() {
             vUV = vec2((gl_VertexID == 2) ? 2.0 : 0.0, (gl_VertexID == 1) ? 2.0 : 0.0);
@@ -578,7 +578,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         uniform vec2 uHalfPixel;
         uniform float uTexScale;
 
-        out highp vec2 vUV;
+        out vec2 vUV;
         out vec4 vDownTaps[2];
 
         void main() {
@@ -596,7 +596,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
         uniform sampler2D uTexture;
 
-        in highp vec2 vUV;
+        in vec2 vUV;
         in vec4 vDownTaps[2];
         out vec4 fragColor;
 
@@ -616,7 +616,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         uniform vec2 uHalfPixel;
         uniform float uTexScale;
 
-        out highp vec2 vUV;
+        out vec2 vUV;
         out vec4 vUpTaps[4];
 
         void main() {
@@ -636,7 +636,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
         uniform sampler2D uTexture;
 
-        in highp vec2 vUV;
+        in vec2 vUV;
         in vec4 vUpTaps[4];
         out vec4 fragColor;
 
@@ -655,7 +655,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
         uniform float uTexScale;
 
-        out highp vec2 vUV;
+        out vec2 vUV;
 
         void main() {
             vUV = vec2((gl_VertexID == 2) ? 2.0 : 0.0, (gl_VertexID == 1) ? 2.0 : 0.0);
@@ -672,7 +672,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         uniform sampler2D uDitherTexture;
         uniform float uBlurOpacity;
 
-        in highp vec2 vUV;
+        in vec2 vUV;
         out vec4 fragColor;
 
         void main() {
@@ -688,7 +688,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         uniform vec2 uNoiseUVScale;
         uniform float uTexScale;
 
-        out highp vec2 vUV;
+        out vec2 vUV;
         out vec2 vNoiseUV;
 
         void main() {
@@ -708,7 +708,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         uniform sampler2D uDitherTexture;
         uniform float uBlurOpacity;
 
-        in highp vec2 vUV;
+        in vec2 vUV;
         in vec2 vNoiseUV;
         out vec4 fragColor;
 
