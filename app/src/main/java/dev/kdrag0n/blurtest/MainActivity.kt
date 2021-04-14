@@ -21,7 +21,7 @@ class MainActivity : AppCompatActivity() {
         bg = Bitmap.createBitmap(bg, 0, 0, bg.width, bg.height, Matrix().also {
             it.preScale(1.0f, -1.0f)
         }, true)
-        val noise = BitmapFactory.decodeResource(resources, R.drawable.blue_noise_rgb16)
+        val noise = BitmapFactory.decodeResource(resources, R.drawable.blue_noise_rgb64)
         blurView = BlurSurfaceView(this, bg, noise)
 
         setContentView(blurView)
