@@ -113,6 +113,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         private var mDMBlurredTextureLoc = 0
         private var mDMDitherTextureLoc = 0
         private var mDMBlurOpacityLoc = 0
+        private var mDMNoiseUVScaleLoc = 0
         private var mDMVertexArray = 0
 
         private var mDownsampleProgram = 0
@@ -174,6 +175,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             mDMBlurredTextureLoc = GLES31.glGetUniformLocation(mDitherMixProgram, "uBlurredTexture")
             mDMDitherTextureLoc = GLES31.glGetUniformLocation(mDitherMixProgram, "uDitherTexture")
             mDMBlurOpacityLoc = GLES31.glGetUniformLocation(mDitherMixProgram, "uBlurOpacity")
+            mDMNoiseUVScaleLoc = GLES31.glGetUniformLocation(mDitherMixProgram, "uNoiseUVScale")
             mDMVertexArray = GLUtils.createVertexArray()
 
             mDownsampleProgram = GLUtils.createProgram(DOWNSAMPLE_VERT_SHADER, DOWNSAMPLE_FRAG_SHADER)
@@ -353,6 +355,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             if (currentLayer == layers - 1) {
                 GLES31.glUseProgram(mDitherMixProgram)
                 GLES31.glUniform1f(mDMBlurOpacityLoc, opacity)
+                GLES31.glUniform2f(mDMNoiseUVScaleLoc, (1.0 / 64.0 * mWidth).toFloat(), (1.0 / 64.0 * mHeight).toFloat())
                 GLES31.glUniform1f(mDMTexScaleLoc, 1.0f)
             } else {
                 GLES31.glUseProgram(mMixProgram)
@@ -565,6 +568,8 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         private const val PASSTHROUGH_VERT_SHADER = """#version 310 es
         precision mediump float;
 
+        uniform vec2 uNoiseUVScale;
+
         out vec2 vUV;
 
         void main() {
@@ -686,7 +691,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         private const val DITHER_MIX_VERT_SHADER = """#version 310 es
         precision mediump float;
 
-        uniform sampler2D uCompositionTexture;
+        uniform vec2 uNoiseUVScale;
         uniform float uTexScale;
 
         out vec2 vUV;
@@ -697,8 +702,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
             gl_Position = vec4(vUV * vec2(2.0, -2.0) + vec2(-1.0, 1.0), 1.0, 1.0);
             vUV *= uTexScale;
 
-            vec2 targetSize = vec2(textureSize(uCompositionTexture, 0));
-            vNoiseUV = vUV / 64.0 * targetSize;
+            vNoiseUV = vUV * uNoiseUVScale;
         }
         """
 
