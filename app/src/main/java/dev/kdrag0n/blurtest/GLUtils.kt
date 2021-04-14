@@ -80,7 +80,7 @@ object GLUtils {
     }
 
     @SuppressLint("HalfFloat")
-    fun bitmapToRgb16fBuffer(bitmap: Bitmap, filter: (Float) -> Float = { it }): ShortBuffer {
+    fun bitmapToRgb16fBuffer(bitmap: Bitmap, filter: (Float) -> Double = { it.toDouble() }): ShortBuffer {
         return ByteBuffer.allocateDirect(bitmap.width * bitmap.height * 3 * 2).run {
             order(ByteOrder.nativeOrder())
             asShortBuffer().apply {

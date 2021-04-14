@@ -14,7 +14,8 @@ import java.nio.ByteOrder
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 import kotlin.concurrent.thread
-import kotlin.math.*
+import kotlin.math.min
+import kotlin.math.pow
 
 // Do not enable for profiling
 private const val DEBUG = false
@@ -191,12 +192,9 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
             mDitherFbo = GLFramebuffer(
                 noiseBitmap.width, noiseBitmap.height,
-                GLUtils.bitmapToRgb16fBuffer(noiseBitmap) { noise ->
-                    val dither = noise * 2.0f - 1.0f
-                    return@bitmapToRgb16fBuffer sign(noise) * (1.0f - sqrt(1.0 - abs(dither)).toFloat()) / 64.0f
-                },
+                GLUtils.bitmapToRgb8Buffer(noiseBitmap),
                 GLES31.GL_NEAREST, GLES31.GL_REPEAT,
-                GLES31.GL_RGB16F, GLES31.GL_RGB, GLES31.GL_HALF_FLOAT
+                GLES31.GL_RGB8, GLES31.GL_RGB, GLES31.GL_UNSIGNED_BYTE
             )
 
             val bgBuffer = ByteBuffer.allocateDirect(bgBitmap.rowBytes * bgBitmap.height).run {
@@ -735,6 +733,11 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         in vec2 vNoiseUV;
         out vec4 fragColor;
 
+        #define FLT_MAX 3.402823466e+38
+        vec3 fast_sign(vec3 x) {
+            return clamp(x * FLT_MAX + 0.5, 0.0, 1.0) * 2.0 - 1.0;
+        }
+
         vec3 srgbToLinear(vec3 srgb) {
             return srgb * srgb;
         }
@@ -744,7 +747,8 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
         }
 
         void main() {
-            vec3 dither = texture(uDitherTexture, vNoiseUV).rgb;
+            vec3 dither = texture(uDitherTexture, vNoiseUV).rgb * 2.0 - 1.0;
+            dither = fast_sign(dither) * (1.0 - sqrt(1.0 - abs(dither))) / 64.0;
             vec3 blurred = srgbToLinear(linearToSrgb(texture(uBlurredTexture, vUV).rgb) + dither);
             vec3 composition = texture(uCompositionTexture, vUV).rgb;
             fragColor = vec4(mix(composition, blurred, 1.0), 1.0);
