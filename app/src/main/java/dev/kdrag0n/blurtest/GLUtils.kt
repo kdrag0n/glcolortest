@@ -73,22 +73,10 @@ object GLUtils {
         return buffer
     }
 
-    fun createVertexArray(vertexBuffer: Int, position: Int, uv: Int): Int {
+    fun createVertexArray(): Int {
         val buf = IntArray(1)
         GLES31.glGenVertexArrays(1, buf, 0)
-        val vertexArray = buf[0]
-        GLES31.glBindVertexArray(vertexArray)
-        GLES31.glBindBuffer(GLES31.GL_ARRAY_BUFFER, vertexBuffer)
-
-        GLES31.glEnableVertexAttribArray(position)
-        GLES31.glVertexAttribPointer(position, 2, GLES31.GL_BYTE, false, 4, 0)
-
-        GLES31.glEnableVertexAttribArray(uv)
-        GLES31.glVertexAttribPointer(uv, 2, GLES31.GL_BYTE, false, 4, 2)
-
-        GLES31.glBindBuffer(GLES31.GL_ARRAY_BUFFER, 0)
-        GLES31.glBindVertexArray(0)
-        return vertexArray
+        return buf[0]
     }
 
     @SuppressLint("HalfFloat")
