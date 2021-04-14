@@ -579,7 +579,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
         void main() {
             vUV = vec2((gl_VertexID == 2) ? 2.0 : 0.0, (gl_VertexID == 1) ? 2.0 : 0.0);
-            gl_Position = vec4(vUV * vec2(2.0, -2.0) + vec2(-1.0, 1.0), 1.0, 1.0);
+            gl_Position = vec4(vUV * 2.0 - 1.0, 1.0, 1.0);
         }
         """
 
@@ -594,7 +594,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
         void main() {
             vUV = vec2((gl_VertexID == 2) ? 2.0 : 0.0, (gl_VertexID == 1) ? 2.0 : 0.0);
-            gl_Position = vec4(vUV * vec2(2.0, -2.0) + vec2(-1.0, 1.0), 1.0, 1.0);
+            gl_Position = vec4(vUV * 2.0 - 1.0, 1.0, 1.0);
             vUV *= uTexScale;
 
             vDownTaps[0] = vUV - uHalfPixel.xy;
@@ -634,7 +634,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
         void main() {
             vUV = vec2((gl_VertexID == 2) ? 2.0 : 0.0, (gl_VertexID == 1) ? 2.0 : 0.0);
-            gl_Position = vec4(vUV * vec2(2.0, -2.0) + vec2(-1.0, 1.0), 1.0, 1.0);
+            gl_Position = vec4(vUV * 2.0 - 1.0, 1.0, 1.0);
             vUV *= uTexScale;
 
             vUpTaps[0] = vUV + vec2(-uHalfPixel.x * 2.0, 0.0);
@@ -680,7 +680,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
         void main() {
             vUV = vec2((gl_VertexID == 2) ? 2.0 : 0.0, (gl_VertexID == 1) ? 2.0 : 0.0);
-            gl_Position = vec4(vUV * vec2(2.0, -2.0) + vec2(-1.0, 1.0), 1.0, 1.0);
+            gl_Position = vec4(vUV * 2.0 - 1.0, 1.0, 1.0);
             vUV *= uTexScale;
         }
         """
@@ -714,7 +714,7 @@ class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private va
 
         void main() {
             vUV = vec2((gl_VertexID == 2) ? 2.0 : 0.0, (gl_VertexID == 1) ? 2.0 : 0.0);
-            gl_Position = vec4(vUV * vec2(2.0, -2.0) + vec2(-1.0, 1.0), 1.0, 1.0);
+            gl_Position = vec4(vUV * 2.0 - 1.0, 1.0, 1.0);
             vUV *= uTexScale;
 
             vNoiseUV = vUV * uNoiseUVScale;
