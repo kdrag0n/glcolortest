@@ -64,7 +64,7 @@ class TestSurfaceView(context: Context) : GLSurfaceView(context), GLSurfaceView.
 
     override fun createWindowSurface(egl: EGL10, display: EGLDisplay, config: EGLConfig, nativeWindow: Any): EGLSurface =
         egl.eglCreateWindowSurface(display, config, nativeWindow, intArrayOf(
-            EGL15.EGL_GL_COLORSPACE, 0x333f, // BT.2020 PQ
+            EGL15.EGL_GL_COLORSPACE, 0x3490, // Display-P3 passthrough
             EGL14.EGL_NONE,
         ))
 

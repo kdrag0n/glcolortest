@@ -220,11 +220,11 @@ const mat3 M_XYZ_TO_BT2020 = mat3(
 );
 
 vec3 linearSrgbToXyz(vec3 c) {
-    return M_BT2020_TO_XYZ * c;
+    return M_DISPLAY_P3_TO_XYZ * c;
 }
 
 vec3 xyzToLinearSrgb(vec3 c) {
-    return M_XYZ_TO_BT2020 * c;
+    return M_XYZ_TO_DISPLAY_P3 * c;
 }
 
 
@@ -1009,7 +1009,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     //camOut = clamp(camOut, 0.0, 1.0);
 
     if (linearSrgbInGamut(camOut)) {
-        fragColor = vec4(camOut, 1.0);
+        fragColor = vec4(srgbTransfer(camOut), 1.0);
     } else {
 	    vec2 fontSize = vec2(16.0, 30.0);
         float digit = PrintValue((fragCoord - vec2(iResolution.x - 80.0, 10.0)) / fontSize, hue, 3.0, 0.0);
