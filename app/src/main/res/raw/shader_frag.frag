@@ -262,14 +262,10 @@ vec3 cielabToXyz(vec3 c) {
  * Oklab
  */
 
-vec3 linearSrgbToOklab(vec3 c) {
-    float r = c.x;
-    float g = c.y;
-    float b = c.z;
-
-    float l = 0.4122214708f * r + 0.5363325363f * g + 0.0514459929f * b;
-    float m = 0.2119034982f * r + 0.6806995451f * g + 0.1073969566f * b;
-    float s = 0.0883024619f * r + 0.2817188376f * g + 0.6299787005f * b;
+vec3 xyzToOklab(vec3 c) {
+    float l = 0.8189330101 * c.x + 0.3618667424 * c.y - 0.1288597137 * c.z;
+    float m = 0.0329845436 * c.x + 0.9293118715 * c.y + 0.0361456387 * c.z;
+    float s = 0.0482003018 * c.x + 0.2643662691 * c.y + 0.6338517070 * c.z;
 
     float l_ = cbrt(l);
     float m_ = cbrt(m);
@@ -282,7 +278,7 @@ vec3 linearSrgbToOklab(vec3 c) {
     );
 }
 
-vec3 oklabToLinearSrgb(vec3 c) {
+vec3 oklabToXyz(vec3 c) {
     float L = c.x;
     float a = c.y;
     float b = c.z;
@@ -296,10 +292,18 @@ vec3 oklabToLinearSrgb(vec3 c) {
     float s = s_*s_*s_;
 
     return vec3(
-        +4.0767416621f * l - 3.3077115913f * m + 0.2309699292f * s,
-        -1.2684380046f * l + 2.6097574011f * m - 0.3413193965f * s,
-        -0.0041960863f * l - 0.7034186147f * m + 1.7076147010f * s
+        +1.2270138511 * l - 0.5577999807 * m + 0.2812561490 * s,
+        -0.0405801784 * l + 1.1122568696 * m - 0.0716766787 * s,
+        -0.0763812845 * l - 0.4214819784 * m + 1.5861632204 * s
     );
+}
+
+vec3 linearSrgbToOklab(vec3 c) {
+    return xyzToOklab(linearSrgbToXyz(c));
+}
+
+vec3 oklabToLinearSrgb(vec3 c) {
+    return xyzToLinearSrgb(oklabToXyz(c));
 }
 
 
