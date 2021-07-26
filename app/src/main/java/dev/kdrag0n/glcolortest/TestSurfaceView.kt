@@ -39,11 +39,6 @@ class TestSurfaceView(context: Context) : GLSurfaceView(context), GLSurfaceView.
         return true
     }
 
-    /*
-     * Blur implementation
-     * (as close to C++ as possible)
-     */
-
     private fun init() {
         val vertShader = resources.openRawResource(R.raw.shader_vert).readBytes().decodeToString()
         val fragShader = resources.openRawResource(R.raw.shader_frag).readBytes().decodeToString()
