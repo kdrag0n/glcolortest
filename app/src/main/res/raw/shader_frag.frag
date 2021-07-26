@@ -988,13 +988,6 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     } else {
 	    vec2 fontSize = vec2(16.0, 30.0);
         float digit = PrintValue((fragCoord - vec2(iResolution.x - 80.0, 10.0)) / fontSize, hue, 3.0, 0.0);
-        if (abs(uv.x * 80.0 - 50.0 * SWATCH_CHROMA_SCALES[0]) <= 0.1 ||
-                abs(uv.x * 80.0 - 50.0 * SWATCH_CHROMA_SCALES[1]) <= 0.1 ||
-                abs(uv.x * 80.0 - 50.0 * SWATCH_CHROMA_SCALES[2]) <= 0.1 ||
-                abs(uv.x * 80.0 - 50.0 * SWATCH_CHROMA_SCALES[3]) <= 0.1 ||
-                abs(uv.x * 80.0 - 50.0 * SWATCH_CHROMA_SCALES[4]) <= 0.1) {
-            digit += 1.0;
-        }
         fragColor = vec4(vec3(0.5) + digit, 1.0);
     }
 }
