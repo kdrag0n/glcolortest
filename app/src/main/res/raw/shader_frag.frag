@@ -209,11 +209,11 @@ const mat3 M_XYZ_TO_DISPLAY_P3 = mat3(
 );
 
 vec3 linearSrgbToXyz(vec3 c) {
-    return M_SRGB_TO_XYZ * c;
+    return M_DISPLAY_P3_TO_XYZ * c;
 }
 
 vec3 xyzToLinearSrgb(vec3 c) {
-    return M_XYZ_TO_SRGB * c;
+    return M_XYZ_TO_DISPLAY_P3 * c;
 }
 
 

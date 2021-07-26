@@ -2,14 +2,19 @@ package dev.kdrag0n.glcolortest
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.opengl.EGL14
+import android.opengl.EGL15
 import android.opengl.GLES31
 import android.opengl.GLSurfaceView
 import android.view.MotionEvent
+import javax.microedition.khronos.egl.EGL10
 import javax.microedition.khronos.egl.EGLConfig
+import javax.microedition.khronos.egl.EGLDisplay
+import javax.microedition.khronos.egl.EGLSurface
 import javax.microedition.khronos.opengles.GL10
 
 @SuppressLint("ViewConstructor")
-class TestSurfaceView(context: Context) : GLSurfaceView(context), GLSurfaceView.Renderer {
+class TestSurfaceView(context: Context) : GLSurfaceView(context), GLSurfaceView.Renderer, GLSurfaceView.EGLWindowSurfaceFactory {
     private var mainProgram = 0
     private var mainVertexArray = 0
 
@@ -24,6 +29,7 @@ class TestSurfaceView(context: Context) : GLSurfaceView(context), GLSurfaceView.
 
     init {
         setEGLContextClientVersion(3)
+        setEGLWindowSurfaceFactory(this)
         setRenderer(this)
     }
 
@@ -52,6 +58,16 @@ class TestSurfaceView(context: Context) : GLSurfaceView(context), GLSurfaceView.
         GLES31.glBindVertexArray(vertexArray)
         GLES31.glDrawArrays(GLES31.GL_TRIANGLES, 0, 3)
         GLES31.glBindVertexArray(0)
+    }
+
+    override fun createWindowSurface(egl: EGL10, display: EGLDisplay, config: EGLConfig, nativeWindow: Any): EGLSurface =
+        egl.eglCreateWindowSurface(display, config, nativeWindow, intArrayOf(
+            EGL15.EGL_GL_COLORSPACE, 0x3490, // Display-P3 passthrough
+            EGL14.EGL_NONE,
+        ))
+
+    override fun destroySurface(egl: EGL10, display: EGLDisplay, surface: EGLSurface) {
+        egl.eglDestroySurface(display, surface)
     }
 
     override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
