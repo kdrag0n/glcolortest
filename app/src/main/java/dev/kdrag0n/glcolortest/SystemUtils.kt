@@ -1,4 +1,4 @@
-package dev.kdrag0n.blurtest
+package dev.kdrag0n.glcolortest
 
 import com.topjohnwu.superuser.Shell
 
@@ -8,7 +8,7 @@ fun systemBoost(cb: () -> Unit = {}) {
         "settings put global airplane_mode_on 1",
         "am broadcast -a android.intent.action.AIRPLANE_MODE --ez state true",
         """
-            for p in $(pm list packages --user 0 -3 | grep -v dev.kdrag0n.blurtest | sed 's/package://g')
+            for p in $(pm list packages --user 0 -3 | grep -v dev.kdrag0n.glcolortest | sed 's/package://g')
             do
                 pm suspend --user 0 ${'$'}p
                 am force-stop --user 0 ${'$'}p
@@ -39,7 +39,7 @@ fun systemBoost(cb: () -> Unit = {}) {
         "echo 1 > /dev/stune/top-app/schedtune.prefer_high_cap",
         "sleep 2",
         """
-            main_pid="$(ps -A | grep dev.kdrag0n.blurtest | awk '{print ${'$'}2}')"
+            main_pid="$(ps -A | grep dev.kdrag0n.glcolortest | awk '{print ${'$'}2}')"
             for p in $(ls "/proc/${'$'}main_pid/task")
             do
                 taskset -p 80 ${'$'}p
@@ -52,7 +52,7 @@ fun systemBoost(cb: () -> Unit = {}) {
 fun systemUnboost(cb: () -> Unit = {}) {
     Shell.su(
         """
-            for p in $(pm list packages --user 0 -3 | grep -v dev.kdrag0n.blurtest | sed 's/package://g')
+            for p in $(pm list packages --user 0 -3 | grep -v dev.kdrag0n.glcolortest | sed 's/package://g')
             do
                 pm unsuspend --user 0 ${'$'}p
             done
@@ -79,7 +79,7 @@ fun systemUnboost(cb: () -> Unit = {}) {
             done
         """.trimIndent(),
         """
-            main_pid="$(ps -A | grep dev.kdrag0n.blurtest | awk '{print ${'$'}2}')"
+            main_pid="$(ps -A | grep dev.kdrag0n.glcolortest | awk '{print ${'$'}2}')"
             for p in $(ls "/proc/${'$'}main_pid/task")
             do
                 taskset -p ff ${'$'}p

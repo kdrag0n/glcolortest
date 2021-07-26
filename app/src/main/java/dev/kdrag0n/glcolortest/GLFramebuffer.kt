@@ -1,4 +1,4 @@
-package dev.kdrag0n.blurtest
+package dev.kdrag0n.glcolortest
 
 import android.opengl.GLES31
 import java.lang.IllegalStateException

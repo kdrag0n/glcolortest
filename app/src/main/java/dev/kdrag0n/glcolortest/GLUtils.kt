@@ -1,4 +1,4 @@
-package dev.kdrag0n.blurtest
+package dev.kdrag0n.glcolortest
 
 import android.annotation.SuppressLint
 import android.graphics.Bitmap

@@ -1,4 +1,4 @@
-package dev.kdrag0n.blurtest
+package dev.kdrag0n.glcolortest
 
 import android.annotation.SuppressLint
 import android.content.Context
@@ -31,7 +31,7 @@ private fun logDebug(msg: String) {
  * https://community.arm.com/cfs-file/__key/communityserver-blogs-components-weblogfiles/00-00-00-20-66/siggraph2015_2D00_mmg_2D00_marius_2D00_notes.pdf
  */
 @SuppressLint("ViewConstructor")
-class BlurSurfaceView(context: Context, private val bgBitmap: Bitmap, private val noiseBitmap: Bitmap) : GLSurfaceView(context) {
+class TestSurfaceView(context: Context, private val bgBitmap: Bitmap, private val noiseBitmap: Bitmap) : GLSurfaceView(context) {
     private val renderer = BlurRenderer()
     @Volatile private var renderOffscreen = false
     @Volatile private var listenTouch = true

@@ -1,4 +1,4 @@
-package dev.kdrag0n.blurtest
+package dev.kdrag0n.glcolortest
 
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -12,7 +12,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import com.topjohnwu.superuser.Shell
 
 class MainActivity : AppCompatActivity() {
-    private lateinit var blurView: BlurSurfaceView
+    private lateinit var blurView: TestSurfaceView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -22,7 +22,7 @@ class MainActivity : AppCompatActivity() {
             it.preScale(1.0f, -1.0f)
         }, true)
         val noise = BitmapFactory.decodeResource(resources, R.drawable.blue_noise_rgb64)
-        blurView = BlurSurfaceView(this, bg, noise)
+        blurView = TestSurfaceView(this, bg, noise)
 
         setContentView(blurView)
 

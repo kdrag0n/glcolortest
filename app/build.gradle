@@ -8,7 +8,7 @@ android {
     buildToolsVersion "30.0.1"
 
     defaultConfig {
-        applicationId "dev.kdrag0n.blurtest"
+        applicationId "dev.kdrag0n.glcolortest"
         minSdkVersion 29
         targetSdkVersion 29
         versionCode 1
