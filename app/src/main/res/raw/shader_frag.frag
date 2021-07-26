@@ -208,12 +208,23 @@ const mat3 M_XYZ_TO_DISPLAY_P3 = mat3(
     -0.40271078,  0.02362469,  0.95688452
 );
 
+const mat3 M_BT2020_TO_XYZ = mat3(
+0.63695805, 0.26270021, 0.        ,
+0.1446169 , 0.67799807, 0.02807269,
+0.16888098, 0.05930172, 1.06098506
+);
+const mat3 M_XYZ_TO_BT2020 = mat3(
+1.71665119, -0.66668435,  0.01763986,
+-0.35567078,  1.61648124, -0.04277061,
+-0.25336628,  0.01576855,  0.94210312
+);
+
 vec3 linearSrgbToXyz(vec3 c) {
-    return M_DISPLAY_P3_TO_XYZ * c;
+    return M_BT2020_TO_XYZ * c;
 }
 
 vec3 xyzToLinearSrgb(vec3 c) {
-    return M_XYZ_TO_DISPLAY_P3 * c;
+    return M_XYZ_TO_BT2020 * c;
 }
 
 
@@ -998,7 +1009,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     //camOut = clamp(camOut, 0.0, 1.0);
 
     if (linearSrgbInGamut(camOut)) {
-        fragColor = vec4(srgbTransfer(camOut), 1.0);
+        fragColor = vec4(camOut, 1.0);
     } else {
 	    vec2 fontSize = vec2(16.0, 30.0);
         float digit = PrintValue((fragCoord - vec2(iResolution.x - 80.0, 10.0)) / fontSize, hue, 3.0, 0.0);

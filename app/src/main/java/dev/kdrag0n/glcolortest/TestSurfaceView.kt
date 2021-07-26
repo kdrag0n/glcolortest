@@ -2,6 +2,7 @@ package dev.kdrag0n.glcolortest
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.PixelFormat
 import android.opengl.EGL14
 import android.opengl.EGL15
 import android.opengl.GLES31
@@ -28,6 +29,7 @@ class TestSurfaceView(context: Context) : GLSurfaceView(context), GLSurfaceView.
     private var glHeight = 0
 
     init {
+        holder.setFormat(PixelFormat.RGBA_F16)
         setEGLContextClientVersion(3)
         setEGLWindowSurfaceFactory(this)
         setRenderer(this)
@@ -62,7 +64,7 @@ class TestSurfaceView(context: Context) : GLSurfaceView(context), GLSurfaceView.
 
     override fun createWindowSurface(egl: EGL10, display: EGLDisplay, config: EGLConfig, nativeWindow: Any): EGLSurface =
         egl.eglCreateWindowSurface(display, config, nativeWindow, intArrayOf(
-            EGL15.EGL_GL_COLORSPACE, 0x3490, // Display-P3 passthrough
+            EGL15.EGL_GL_COLORSPACE, 0x333f, // BT.2020 PQ
             EGL14.EGL_NONE,
         ))
 
