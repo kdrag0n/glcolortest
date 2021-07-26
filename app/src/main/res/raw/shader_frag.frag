@@ -1029,16 +1029,8 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     //rawLightness = 0.7502;
     //rawChroma = 0.127552;
 
-    if (iTime <= 3.0) {
-        fragColor = vec4(1.0);
-        return;
-    }
     // Gamut/cusp animation
-    if (iMouse.z > 0.0) {
-        camOut = getColorZcam(rawLightness, rawChroma, hue);
-    } else {
-        camOut = getColorOklab(rawLightness, rawChroma, hue);
-    }
+    camOut = getColorOklab(rawLightness, rawChroma, hue);
 
     // Lightness ramp
     /*if (iMouse.z > 0.0) {
@@ -1058,10 +1050,8 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     //camOut = gamut_clip_adaptive_L0_L_cusp(camOut, 0.05);
 
     // Simple RGB clipping (also necessary for Oklab clipping)
-    if (false && !linearSrgbInGamut(camOut)) {
-        camOut = ACESFilm(camOut);
-        camOut = clamp(camOut, 0.0, 1.0);
-    }
+    camOut = Tonemap_Aces(camOut);
+    camOut = clamp(camOut, 0.0, 1.0);
 
     if (linearSrgbInGamut(camOut)) {
         fragColor = vec4(srgbTransfer(camOut), 1.0);
