@@ -186,24 +186,34 @@ bool linearSrgbInGamut(vec3 c) {
 
 const vec3 D65 = vec3(0.95047, 1.0, 1.08883);
 
-vec3 linearSrgbToXyz(vec3 c) {
-    float r = c.x;
-    float g = c.y;
-    float b = c.z;
+const mat3 M_SRGB_TO_XYZ = mat3(
+    0.4123908 , 0.21263901, 0.01933082,
+    0.35758434, 0.71516868, 0.11919478,
+    0.18048079, 0.07219232, 0.95053215
+);
+const mat3 M_XYZ_TO_SRGB = mat3(
+     3.24096994, -0.96924364,  0.05563008,
+    -1.53738318,  1.8759675 , -0.20397696,
+    -0.49861076,  0.04155506,  1.05697151
+);
 
-    return vec3(
-        0.4124564 * r + 0.3575761 * g + 0.1804375 * b,
-        0.2126729 * r + 0.7151522 * g + 0.0721750 * b,
-        0.0193339 * r + 0.1191920 * g + 0.9503041 * b
-    );
+const mat3 M_DISPLAY_P3_TO_XYZ = mat3(
+     0.48657095,  0.22897456, -0.        ,
+     0.26566769,  0.69173852,  0.04511338,
+     0.19821729,  0.07928691,  1.04394437
+);
+const mat3 M_XYZ_TO_DISPLAY_P3 = mat3(
+     2.49349691, -0.82948897,  0.03584583,
+    -0.93138362,  1.76266406, -0.07617239,
+    -0.40271078,  0.02362469,  0.95688452
+);
+
+vec3 linearSrgbToXyz(vec3 c) {
+    return M_SRGB_TO_XYZ * c;
 }
 
 vec3 xyzToLinearSrgb(vec3 c) {
-    return vec3(
-        +3.2404542 * c.x + -1.5371385 * c.y + -0.4985314 * c.z,
-        -0.9692660 * c.x + +1.8760108 * c.y + +0.0415560 * c.z,
-        +0.0556434 * c.x + -0.2040259 * c.y + +1.0572252 * c.z
-    );
+    return M_XYZ_TO_SRGB * c;
 }
 
 
@@ -957,11 +967,11 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     //rawChroma = 0.127552;
 
     // Gamut/cusp animation
-    /*if (iMouse.z > 0.0) {
+    if (iMouse.z > 0.0) {
         camOut = getColorZcam(rawLightness, rawChroma, hue);
     } else {
         camOut = getColorOklab(rawLightness, rawChroma, hue);
-    }*/
+    }
 
     // Lightness ramp
     /*if (iMouse.z > 0.0) {
@@ -971,7 +981,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     }*/
 
     // Theme generation
-    camOut = getThemeColor(uv, hue);
+    //camOut = getThemeColor(uv, hue);
 
     // Oklab gamut clipping
     //camOut = gamut_clip_preserve_lightness(camOut);
