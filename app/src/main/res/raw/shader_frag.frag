@@ -72,6 +72,15 @@ float cube(float x) {
     return x * x * x;
 }
 
+float sqrtStd(float x) {
+    if (x < 0.0) {
+        return 0.0 / 0.0;
+    } else {
+        return sqrt(x);
+    }
+}
+#define sqrt sqrtStd
+
 
 /*
  * Number rendering
