@@ -957,11 +957,11 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     //rawChroma = 0.127552;
 
     // Gamut/cusp animation
-    if (iMouse.z > 0.0) {
+    /*if (iMouse.z > 0.0) {
         camOut = getColorZcam(rawLightness, rawChroma, hue);
     } else {
         camOut = getColorOklab(rawLightness, rawChroma, hue);
-    }
+    }*/
 
     // Lightness ramp
     /*if (iMouse.z > 0.0) {
@@ -971,7 +971,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     }*/
 
     // Theme generation
-    //camOut = getThemeColor(uv, hue);
+    camOut = getThemeColor(uv, hue);
 
     // Oklab gamut clipping
     //camOut = gamut_clip_preserve_lightness(camOut);
