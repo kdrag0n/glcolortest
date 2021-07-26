@@ -705,7 +705,7 @@ ZcamViewingConditions createZcamViewingConditions(float F_s, float L_a, float Y_
 
 vec3 zcamToXyz(vec3 c, ZcamViewingConditions cond) {
     float Jz = c.x;
-    float Vz = c.y;
+    float Mz = c.y;
     float hz = c.z;
 
     float Iz_w = cond.refWhiteIz;
@@ -719,14 +719,13 @@ vec3 zcamToXyz(vec3 c, ZcamViewingConditions cond) {
 
     /* Step 2 */
     // Chroma
-    float Cz = sqrt((square(Vz) - square(Jz - 58.0)) / 3.4);
+    /* skipped because we only accept Mz, not Cz */
 
     /* Step 3 is missing because hue composition is not supported */
 
     /* Step 4 */
     // ... and back to colorfulness
     /* Mz comes from input */
-    float Mz = (Cz * Qz_w) / 100.0;
     float ez = hpToEz(hz);
     float Cz_p = pow((Mz * pow(Iz_w, 0.78) * pow(cond.F_b, 0.1)) /
             // Paper specifies pow(1.3514) but this extra precision is necessary for more accurate inversion
@@ -905,38 +904,13 @@ vec3 getColorCielab(float rawLightness, float rawChroma, float hue) {
     return xyzToLinearSrgb(cielabToXyz(cielab));
 }
 
-vec3 clipZcamJmhToLinearSrgb2(vec3 jmh, ZcamViewingConditions cond) {
-    vec3 initialResult = zcamJmhToLinearSrgb(jmh, cond);
-    if (linearSrgbInGamut(initialResult)) {
-        return initialResult;
-    }
-
-    float lightness = jmh.r;
-    float vividness = jmh.g;
-    float hue = jmh.b;
-
-    float newVividness = vividness;
-    vec3 newLinearSrgb = initialResult;
-    while (!linearSrgbInGamut(newLinearSrgb) && newVividness >= 0.0) {
-        newVividness -= 0.001;
-        newLinearSrgb = zcamJmhToLinearSrgb(vec3(lightness, newVividness, hue), cond);
-    }
-    newVividness = vividness;
-    while (!linearSrgbInGamut(newLinearSrgb) && newVividness <= 59.0) {
-        newVividness += 0.001;
-        newLinearSrgb = zcamJmhToLinearSrgb(vec3(lightness, newVividness, hue), cond);
-    }
-
-    return newLinearSrgb;
-}
-
 vec3 getColorZcam(float rawLightness, float rawChroma, float hue) {
     ZcamViewingConditions cond = createZcamViewingConditions(SURROUND_AVERAGE, 40.0, 20.0, D65 * SRGB_WHITE_LUMINANCE);
 
-    vec3 jmh = vec3(rawLightness * 100.0, rawChroma * 80.0, hue);
+    vec3 jmh = vec3(rawLightness * 100.0, rawChroma * 170.0, hue);
 
     if (CLIP_ZCAM) {
-        return clipZcamJmhToLinearSrgb2(jmh, cond);
+        return clipZcamJmhToLinearSrgb(jmh, cond);
     } else {
         return zcamJmhToLinearSrgb(jmh, cond);
     }
