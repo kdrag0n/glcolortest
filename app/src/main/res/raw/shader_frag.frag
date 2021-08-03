@@ -969,6 +969,10 @@ vec3 getLightnessZcam(float rawLightness, float rawChroma, float hue) {
     return xyzToLinearSrgb(xyzRel);
 }
 
+/*
+ * Tone-mapping
+ */
+
 // Based on http://www.oscars.org/science-technology/sci-tech-projects/aces
 vec3 aces_tonemap(vec3 color){
     mat3 m1 = mat3(
@@ -1027,6 +1031,7 @@ vec3 ACESFilm(vec3 x)
     float e = 0.14f;
     return clamp((x*(a*x+b))/(x*(c*x+d)+e), 0.0, 1.0);
 }
+
 /*
  * Main
  */
@@ -1040,9 +1045,9 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     vec3 camOut;
 
     // Rainbow
-    rawLightness = 0.7502;
-    rawChroma = 0.138;
-    hue = uv.x * 360.0;
+    //rawLightness = 0.7502;
+    //rawChroma = 0.138;
+    //hue = uv.x * 360.0;
 
     // Gamut/cusp animation
     if (iMouse.z > 0.0) {
