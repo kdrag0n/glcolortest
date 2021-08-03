@@ -1,5 +1,6 @@
 package dev.kdrag0n.glcolortest
 
+import android.graphics.BitmapFactory
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.view.WindowManager
@@ -14,7 +15,8 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        glView = TestSurfaceView(this)
+        val noise = BitmapFactory.decodeResource(resources, R.drawable.blue_noise_rgb64)
+        glView = TestSurfaceView(this, noise)
 
         setContentView(glView)
 
