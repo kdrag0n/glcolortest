@@ -79,7 +79,6 @@ float sqrtStd(float x) {
         return sqrt(x);
     }
 }
-#define sqrt sqrtStd
 
 
 /*
@@ -905,6 +904,12 @@ vec3 getThemeColor(vec2 uv, float hue) {
     int swatchIdx = int((1.0 - uv.y) * 5.0);
     float seedChroma = 1000000.0;
 
+    if (shadeIdx == 0) {
+        return vec3(1.0);
+    } else if (shadeIdx == 12) {
+        return vec3(0.0);
+    }
+
     if (iMouse.z > 0.0) {
         return generateShadeZcam(swatchIdx, shadeIdx, seedChroma, hue, 1.0);
     } else {
@@ -964,7 +969,64 @@ vec3 getLightnessZcam(float rawLightness, float rawChroma, float hue) {
     return xyzToLinearSrgb(xyzRel);
 }
 
+// Based on http://www.oscars.org/science-technology/sci-tech-projects/aces
+vec3 aces_tonemap(vec3 color){
+    mat3 m1 = mat3(
+        0.59719, 0.07600, 0.02840,
+        0.35458, 0.90834, 0.13383,
+        0.04823, 0.01566, 0.83777
+    );
+    mat3 m2 = mat3(
+        1.60475, -0.10208, -0.00327,
+        -0.53108,  1.10813, -0.07276,
+        -0.07367, -0.00605,  1.07602
+    );
+    vec3 v = m1 * color;
+    vec3 a = v * (v + 0.0245786) - 0.000090537;
+    vec3 b = v * (0.983729 * v + 0.4329510) + 0.238081;
+    return pow(clamp(m2 * (a / b), 0.0, 1.0), vec3(1.0 / 2.2));
+}
 
+vec3 Tonemap_Aces(vec3 color) {
+
+    // ACES filmic tonemapper with highlight desaturation ("crosstalk").
+    // Based on the curve fit by Krzysztof Narkowicz.
+    // https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
+
+    const float slope = 12.0f; // higher values = slower rise.
+
+    // Store grayscale as an extra channel.
+    vec4 x = vec4(
+    // RGB
+    color.r, color.g, color.b,
+    // Luminosity
+    (color.r * 0.299) + (color.g * 0.587) + (color.b * 0.114)
+    );
+
+    // ACES Tonemapper
+    const float a = 2.51f;
+    const float b = 0.03f;
+    const float c = 2.43f;
+    const float d = 0.59f;
+    const float e = 0.14f;
+
+    vec4 tonemap = clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
+    float t = x.a;
+
+    t = t * t / (slope + t);
+
+    // Return after desaturation step.
+    return mix(tonemap.rgb, tonemap.aaa, t);
+}
+vec3 ACESFilm(vec3 x)
+{
+    float a = 2.51f;
+    float b = 0.03f;
+    float c = 2.43f;
+    float d = 0.59f;
+    float e = 0.14f;
+    return clamp((x*(a*x+b))/(x*(c*x+d)+e), 0.0, 1.0);
+}
 /*
  * Main
  */
@@ -978,8 +1040,9 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     vec3 camOut;
 
     // Rainbow
-    //rawLightness = 0.7502;
-    //rawChroma = 0.127552;
+    rawLightness = 0.7502;
+    rawChroma = 0.138;
+    hue = uv.x * 360.0;
 
     // Gamut/cusp animation
     if (iMouse.z > 0.0) {
@@ -1006,10 +1069,13 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     //camOut = gamut_clip_adaptive_L0_L_cusp(camOut, 0.05);
 
     // Simple RGB clipping (also necessary for Oklab clipping)
+    //camOut = aces_tonemap(camOut);
     //camOut = clamp(camOut, 0.0, 1.0);
 
     if (linearSrgbInGamut(camOut)) {
-        fragColor = vec4(srgbTransfer(camOut), 1.0);
+        vec3 dither = texture(iChannel0, uv * (iResolution.xy / 64.0)).rgb * 2.0 - 1.0;
+        dither = sign(dither) * (1.0 - sqrt(1.0 - abs(dither))) / 64.0;
+        fragColor = vec4(srgbTransfer(camOut) + dither, 1.0);
     } else {
 	    vec2 fontSize = vec2(16.0, 30.0);
         float digit = PrintValue((fragCoord - vec2(iResolution.x - 80.0, 10.0)) / fontSize, hue, 3.0, 0.0);
