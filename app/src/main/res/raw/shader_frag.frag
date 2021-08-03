@@ -55,13 +55,7 @@ float atan2(float y, float x) {
 }
 
 float cbrt(float x) {
-    if (x > 0.0) {
-        return pow(x, 1.0 / 3.0);
-    } else if (x < 0.0) {
-        return -pow(-x, 1.0 / 3.0);
-    } else {
-        return 0.0;
-    }
+    return sign(x) * pow(abs(x), 1.0 / 3.0);
 }
 
 float square(float x) {
@@ -160,15 +154,15 @@ vec3 lchToLab(vec3 c) {
  */
 
 vec3 srgbTransfer(vec3 c) {
-    vec3 gamma = vec3(1.055) * pow(c, vec3(1.0/2.4)) - vec3(0.055);
-    vec3 linear = vec3(12.92) * c;
+    vec3 gamma = 1.055 * pow(c, vec3(1.0/2.4)) - 0.055;
+    vec3 linear = 12.92 * c;
     bvec3 selectParts = lessThan(c, vec3(0.0031308));
     return mix(gamma, linear, selectParts);
 }
 
 vec3 srgbTransferInv(vec3 c) {
-    vec3 gamma = pow((c + vec3(0.055))/vec3(1.0 + 0.055), vec3(2.4));
-    vec3 linear = c / vec3(12.92);
+    vec3 gamma = pow((c + 0.055)/1.055, vec3(2.4));
+    vec3 linear = c / 12.92;
     bvec3 selectParts = lessThan(c, vec3(0.04045));
     return mix(gamma, linear, selectParts);
 }
