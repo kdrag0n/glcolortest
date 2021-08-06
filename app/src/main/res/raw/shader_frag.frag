@@ -795,14 +795,14 @@ vec3 clipZcamJmhToLinearSrgb(vec3 jmh, ZcamViewingConditions cond) {
     float hi = chroma;
 
     vec3 newLinearSrgb = initialResult;
-    while (abs(hi - lo) > EPSILON) {
+    while (abs(hi - lo) > ZCAM_CHROMA_EPSILON) {
         float mid = (lo + hi) / 2.0;
 
         newLinearSrgb = zcamJmhToLinearSrgb(vec3(lightness, mid, hue), cond);
         if (!linearSrgbInGamut(newLinearSrgb)) {
             hi = mid;
         } else {
-            float mid2 = mid + EPSILON;
+            float mid2 = mid + ZCAM_CHROMA_EPSILON;
 
             vec3 newLinearSrgb2 = zcamJmhToLinearSrgb(vec3(lightness, mid2, hue), cond);
             if (linearSrgbInGamut(newLinearSrgb2)) {
