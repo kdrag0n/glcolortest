@@ -787,7 +787,7 @@ vec3 zcamJmhToLinearSrgb(vec3 jmh, ZcamViewingConditions cond) {
 }
 
 const float ZCAM_CHROMA_EPSILON = 0.0001;
-const bool CLIP_ZCAM = false; // warning: can crash GPU!
+const bool CLIP_ZCAM = true; // warning: can crash GPU!
 vec3 clipZcamJmhToLinearSrgb(vec3 jmh, ZcamViewingConditions cond) {
     vec3 initialResult = zcamJmhToLinearSrgb(jmh, cond);
     if (linearSrgbInGamut(initialResult)) {
@@ -872,8 +872,8 @@ const float SWATCH_CHROMA_SCALES[5] = float[](
     1.0, // accent1
     1.0 / 3.0, // accent2
     (1.0 / 3.0) * 2.0, // accent3
-    1.0 / 12.0, // neutral1
-    (1.0 / 12.0) * 2.0 // neutral2
+    1.0 / 7.0, // neutral1
+    1.0 / 5.0 // neutral2
 );
 
 vec3 calcShadeParams(int swatch, int shade, float seedChroma, float seedHue, float chromaFactor, float lightnessMap[13], float accent1Chroma) {
@@ -919,7 +919,7 @@ vec3 getThemeColor(vec2 uv, float hue) {
     if (iMouse.z > 0.0) {
         return generateShadeZcam(swatchIdx, shadeIdx, seedChroma, hue, 1.0);
     } else {
-        return generateShadeOklab(swatchIdx, shadeIdx, seedChroma, hue, 1.0);
+        return gamut_clip_preserve_lightness(generateShadeOklab(swatchIdx, shadeIdx, seedChroma, hue, 1.0));
     }
 }
 
@@ -1057,9 +1057,10 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
 
     // Gamut/cusp animation
     if (iMouse.z > 0.0) {
-        camOut = getColorZcam(rawLightness, rawChroma, hue);
-    } else {
         camOut = getColorOklab(rawLightness, rawChroma, hue);
+        camOut = gamut_clip_preserve_lightness(camOut);
+    } else {
+        camOut = getColorZcam(rawLightness, rawChroma, hue);
     }
 
     // Lightness ramp
@@ -1070,7 +1071,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     }*/
 
     // Theme generation
-    //camOut = getThemeColor(uv, hue);
+    camOut = getThemeColor(uv, hue);
 
     // Oklab gamut clipping
     //camOut = gamut_clip_preserve_lightness(camOut);
@@ -1081,7 +1082,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
 
     // Simple RGB clipping (also necessary for Oklab clipping)
     //camOut = aces_tonemap(camOut);
-    //camOut = clamp(camOut, 0.0, 1.0);
+    camOut = clamp(camOut, 0.0, 1.0);
 
     if (linearSrgbInGamut(camOut)) {
         vec3 dither = texture(iChannel0, uv * (iResolution.xy / 64.0)).rgb * 2.0 - 1.0;
