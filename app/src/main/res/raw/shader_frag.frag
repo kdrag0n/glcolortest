@@ -32,6 +32,7 @@ precision highp float;
 const float HUE_RATE = 20.0;
 
 const float SRGB_WHITE_LUMINANCE = 203.0; // cd/m^2
+const float SRGB_WHITE_LUMINANCE_DYN_MAX = 10000.0; // cd/m^2
 
 
 /*
@@ -78,6 +79,7 @@ float sqrtStd(float x) {
 /*
  * Number rendering
  */
+
 // ---- 8< ---- GLSL Number Printing - @P_Malin ---- 8< ----
 // Creative Commons CC0 1.0 Universal (CC-0)
 // https://www.shadertoy.com/view/4sBSWW
@@ -172,6 +174,18 @@ bool linearSrgbInGamut(vec3 c) {
     return c == clamped;
 }
 
+float _int8ToFloat(int x) {
+    return float(x) / 255.0;
+}
+
+vec3 rgb8ToFloat(int c) {
+    return vec3(
+        _int8ToFloat((c >> 16) & 0xff),
+        _int8ToFloat((c >> 8) & 0xff),
+        _int8ToFloat(c & 0xff)
+    );
+}
+
 
 /*
  * XYZ
@@ -225,11 +239,11 @@ const mat3 M_XYZ_TO_DCI_P3 = mat3(
 );
 
 vec3 linearSrgbToXyz(vec3 c) {
-    return M_DISPLAY_P3_TO_XYZ * c;
+    return M_SRGB_TO_XYZ * c;
 }
 
 vec3 xyzToLinearSrgb(vec3 c) {
-    return M_XYZ_TO_DISPLAY_P3 * c;
+    return M_XYZ_TO_SRGB * c;
 }
 
 
@@ -655,7 +669,7 @@ vec3 gamut_clip_adaptive_L0_L_cusp(vec3 rgb, float alpha)
 
 
 /*
- * ZCAM (JMh values)
+ * ZCAM (JCh values)
  */
 
 const float B = 1.15;
@@ -677,6 +691,7 @@ struct ZcamViewingConditions {
     float L_a;
     float Y_b;
     vec3 refWhite;
+    float whiteLuminance;
 
     // Calculated
     float F_b;
@@ -722,20 +737,95 @@ float izToQz(float Iz, ZcamViewingConditions cond) {
             (pow(cond.F_s, 2.2) * pow(cond.F_b, 0.5) * pow(cond.F_l, 0.2));
 }
 
-ZcamViewingConditions createZcamViewingConditions(float F_s, float L_a, float Y_b, vec3 refWhite) {
+ZcamViewingConditions createZcamViewingConditions(float F_s, float L_a, float Y_b, vec3 refWhite, float whiteLuminance) {
     float F_b = sqrt(Y_b / refWhite.y);
     float F_l = 0.171 * cbrt(L_a) * (1.0 - exp(-48.0/9.0 * L_a));
     float refWhiteIz = xyzToIzazbz(refWhite).x;
 
     return ZcamViewingConditions(
-        F_s, L_a, Y_b, refWhite,
+        F_s, L_a, Y_b, refWhite, whiteLuminance,
         F_b, F_l, refWhiteIz
+    );
+}
+
+struct Zcam {
+    float brightness;
+    float lightness;
+    float colorfulness;
+    float chroma;
+    float hueAngle;
+    /* hue composition is not implemented */
+
+    float saturation;
+    float vividness;
+    float blackness;
+    float whiteness;
+
+    ZcamViewingConditions cond;
+};
+
+Zcam xyzToZcam(vec3 c, ZcamViewingConditions cond) {
+    /* Step 2 */
+    // Achromatic response
+    vec3 izazbz = xyzToIzazbz(c);
+    float Iz = izazbz.x;
+    float az = izazbz.y;
+    float bz = izazbz.z;
+    float Iz_w = cond.refWhiteIz;
+
+    /* Step 3 */
+    // Hue angle
+    float hz = radiansToDegrees(atan2(bz, az));
+    float hp = (hz < 0.0) ? hz + 360.0 : hz;
+
+    /* Step 4 */
+    // Eccentricity factor
+    float ez = hpToEz(hp);
+
+    /* Step 5 */
+    // Brightness
+    float Qz = izToQz(Iz, cond);
+    float Qz_w = izToQz(cond.refWhiteIz, cond);
+
+    // Lightness
+    float Jz = 100.0 * (Qz / Qz_w);
+
+    // Colorfulness
+    float Mz = 100.0 * pow(square(az) + square(bz), 0.37) *
+            ((pow(ez, 0.068) * pow(cond.F_l, 0.2)) /
+                    (pow(cond.F_b, 0.1) * pow(Iz_w, 0.78)));
+    
+    // Chroma
+    float Cz = 100.0 * (Mz / Qz_w);
+
+    /* Step 6 */
+    // Saturation
+    float Sz = 100.0 * pow(cond.F_l, 0.6) * sqrt(Mz / Qz);
+
+    // Vividness, blackness, whiteness
+    float Vz = sqrt(square(Jz - 58.0) + 3.4 * square(Cz));
+    float Kz = 100.0 - 0.8 * sqrt(square(Jz) + 8.0 * square(Cz));
+    float Wz = 100.0 - sqrt(square(100.0 - Jz) + square(Cz));
+
+    return Zcam(
+        Qz,
+        Jz,
+        Mz,
+        Cz,
+        hp,
+
+        Sz,
+        Vz,
+        Kz,
+        Wz,
+
+        cond
     );
 }
 
 vec3 zcamToXyz(vec3 c, ZcamViewingConditions cond) {
     float Jz = c.x;
-    float Mz = c.y;
+    float Cz = c.y;
     float hz = c.z;
 
     float Iz_w = cond.refWhiteIz;
@@ -749,13 +839,13 @@ vec3 zcamToXyz(vec3 c, ZcamViewingConditions cond) {
 
     /* Step 2 */
     // Chroma
-    /* skipped because we only accept Mz, not Cz */
+    /* skipped because we take Cz as input */
 
     /* Step 3 is missing because hue composition is not supported */
 
     /* Step 4 */
     // ... and back to colorfulness
-    /* Mz comes from input */
+    float Mz = (Cz * Qz_w) / 100.0;
     float ez = hpToEz(hz);
     float Cz_p = pow((Mz * pow(Iz_w, 0.78) * pow(cond.F_b, 0.1)) /
             // Paper specifies pow(1.3514) but this extra precision is necessary for more accurate inversion
@@ -780,23 +870,23 @@ vec3 zcamToXyz(vec3 c, ZcamViewingConditions cond) {
     return vec3(x, y, z);
 }
 
-vec3 zcamJmhToLinearSrgb(vec3 jmh, ZcamViewingConditions cond) {
-    vec3 xyzAbs = zcamToXyz(jmh, cond);
-    vec3 xyzRel = xyzAbs / SRGB_WHITE_LUMINANCE;
+vec3 zcamJchToLinearSrgb(vec3 jch, ZcamViewingConditions cond) {
+    vec3 xyzAbs = zcamToXyz(jch, cond);
+    vec3 xyzRel = xyzAbs / cond.whiteLuminance;
     return xyzToLinearSrgb(xyzRel);
 }
 
 const float ZCAM_CHROMA_EPSILON = 0.0001;
 const bool CLIP_ZCAM = true; // warning: can crash GPU!
-vec3 clipZcamJmhToLinearSrgb(vec3 jmh, ZcamViewingConditions cond) {
-    vec3 initialResult = zcamJmhToLinearSrgb(jmh, cond);
+vec3 clipZcamJchToLinearSrgb(vec3 jch, ZcamViewingConditions cond) {
+    vec3 initialResult = zcamJchToLinearSrgb(jch, cond);
     if (linearSrgbInGamut(initialResult)) {
         return initialResult;
     }
 
-    float lightness = jmh.r;
-    float chroma = jmh.g;
-    float hue = jmh.b;
+    float lightness = jch.r;
+    float chroma = jch.g;
+    float hue = jch.b;
     if (lightness <= ZCAM_CHROMA_EPSILON) {
         return vec3(0.0);
     } else if (lightness >= 100.0 - ZCAM_CHROMA_EPSILON) {
@@ -810,13 +900,13 @@ vec3 clipZcamJmhToLinearSrgb(vec3 jmh, ZcamViewingConditions cond) {
     while (abs(hi - lo) > ZCAM_CHROMA_EPSILON) {
         float mid = (lo + hi) / 2.0;
 
-        newLinearSrgb = zcamJmhToLinearSrgb(vec3(lightness, mid, hue), cond);
+        newLinearSrgb = zcamJchToLinearSrgb(vec3(lightness, mid, hue), cond);
         if (!linearSrgbInGamut(newLinearSrgb)) {
             hi = mid;
         } else {
             float mid2 = mid + ZCAM_CHROMA_EPSILON;
 
-            vec3 newLinearSrgb2 = zcamJmhToLinearSrgb(vec3(lightness, mid2, hue), cond);
+            vec3 newLinearSrgb2 = zcamJchToLinearSrgb(vec3(lightness, mid2, hue), cond);
             if (linearSrgbInGamut(newLinearSrgb2)) {
                 lo = mid;
             } else {
@@ -868,6 +958,51 @@ const float ZCAM_LIGHTNESS_MAP[13] = float[](
     0.0
 );
 
+const float CIELAB_LIGHTNESS_MAP[13] = float[](
+    100.0,
+    99.0,
+    95.0,
+    90.0,
+    80.0,
+    70.0,
+    60.0,
+    49.6,
+    40.0,
+    30.0,
+    20.0,
+    10.0,
+    0.0
+);
+
+const float ZCAM_LINEAR_LIGHTNESS_MAP[13] = float[](
+    100.0,
+    99.0,
+    95.0,
+    90.0,
+    80.0,
+    70.0,
+    60.0,
+    50.0,
+    40.0,
+    30.0,
+    20.0,
+    10.0,
+    0.0
+);
+
+const int REF_ACCENT1_COLOR_COUNT = 9;
+const int REF_ACCENT1_COLORS[9] = int[](
+    0xd3e3fd,
+    0xa8c7fa,
+    0x7cacf8,
+    0x4c8df6,
+    0x1b6ef3,
+    0x0b57d0,
+    0x0842a0,
+    0x062e6f,
+    0x041e49
+);
+
 const float SWATCH_CHROMA_SCALES[5] = float[](
     1.0, // accent1
     1.0 / 3.0, // accent2
@@ -876,8 +1011,7 @@ const float SWATCH_CHROMA_SCALES[5] = float[](
     1.0 / 5.0 // neutral2
 );
 
-vec3 calcShadeParams(int swatch, int shade, float seedChroma, float seedHue, float chromaFactor, float lightnessMap[13], float accent1Chroma) {
-    float lightness = lightnessMap[shade];
+vec3 calcShadeParams(int swatch, float lightness, float seedChroma, float seedHue, float chromaFactor, float accent1Chroma) {
     float refChroma = accent1Chroma * SWATCH_CHROMA_SCALES[0];
     float targetChroma = accent1Chroma * SWATCH_CHROMA_SCALES[swatch];
     float scaleC = (refChroma == 0.0) ? 0.0 : (clamp(seedChroma, 0.0, refChroma) / refChroma);
@@ -888,20 +1022,62 @@ vec3 calcShadeParams(int swatch, int shade, float seedChroma, float seedHue, flo
 }
 
 vec3 generateShadeOklab(int swatch, int shade, float seedChroma, float seedHue, float chromaFactor) {
-    vec3 lch = calcShadeParams(swatch, shade, seedChroma, seedHue, chromaFactor, OKLAB_LIGHTNESS_MAP, OKLAB_ACCENT1_CHROMA);
+    float cielabL = CIELAB_LIGHTNESS_MAP[shade];
+    vec3 cielabXyz = cielabToXyz(vec3(cielabL, 0.0, 0.0));
+    float lightness = xyzToOklab(cielabXyz).x;
+
+    vec3 lch = calcShadeParams(swatch, lightness, seedChroma, seedHue, chromaFactor, OKLAB_ACCENT1_CHROMA);
     vec3 oklab = lchToLab(lch);
     return oklabToLinearSrgb(oklab);
 }
 
-vec3 generateShadeZcam(int swatch, int shade, float seedChroma, float seedHue, float chromaFactor) {
-    ZcamViewingConditions cond = createZcamViewingConditions(SURROUND_AVERAGE, 40.0, 20.0, D65 * SRGB_WHITE_LUMINANCE);
+ZcamViewingConditions getZcamCond() {
+    float whiteLuminance = SRGB_WHITE_LUMINANCE;
+    whiteLuminance = pow(10.0, (iMouse.x / iResolution.x) * (log(SRGB_WHITE_LUMINANCE_DYN_MAX) / log(10.0)));
 
-    vec3 jmh = calcShadeParams(swatch, shade, seedChroma, seedHue, chromaFactor, ZCAM_LIGHTNESS_MAP, ZCAM_ACCENT1_COLORFULNESS);
+    float dynVal1 = (iMouse.x / iResolution.x) * whiteLuminance;
+    float dynVal2 = (iMouse.y / iResolution.y) * whiteLuminance;
+
+    ZcamViewingConditions cond = createZcamViewingConditions(
+        /* surround */ SURROUND_AVERAGE,
+        /* L_a */ 0.4 * whiteLuminance,
+        /* Y_b */ cielabToXyz(vec3(50.0, 0.0, 0.0)).y * whiteLuminance,
+        /* ref white */ D65 * whiteLuminance,
+        /* white luminance */ whiteLuminance
+    );
+
+    return cond;
+}
+
+vec3 generateShadeZcam(int swatch, int shade, float seedChroma, float seedHue, float chromaFactor) {
+    ZcamViewingConditions cond = getZcamCond();
+
+    float cielabL = CIELAB_LIGHTNESS_MAP[shade];
+    vec3 cielabXyz = cielabToXyz(vec3(cielabL, 0.0, 0.0)) * cond.whiteLuminance;
+    float lightness = xyzToZcam(cielabXyz, cond).lightness;
+
+    // Calculate accent1 chroma given the viewing conditions
+    float chromaAcc = 0.0;
+    for (int i = 0; i < REF_ACCENT1_COLOR_COUNT; i++) {
+        vec3 srgb = rgb8ToFloat(REF_ACCENT1_COLORS[i]);
+        vec3 xyzAbs = linearSrgbToXyz(srgbTransferInv(srgb)) * cond.whiteLuminance;
+        Zcam zcam = xyzToZcam(xyzAbs, cond);
+        chromaAcc += zcam.chroma;
+    }
+    float avgChroma = chromaAcc / float(REF_ACCENT1_COLOR_COUNT);
+
+    // For constant values
+    //lightness = ZCAM_LIGHTNESS_MAP[shade];
+    //avgChroma = ZCAM_ACCENT1_CHROMA;
+    // For linear shade lightness in ZCAM
+    //lightness = ZCAM_LINEAR_LIGHTNESS_MAP[shade];
+
+    vec3 jch = calcShadeParams(swatch, lightness, seedChroma, seedHue, chromaFactor, avgChroma);
 
     if (CLIP_ZCAM) {
-        return clipZcamJmhToLinearSrgb(jmh, cond);
+        return clipZcamJchToLinearSrgb(jch, cond);
     } else {
-        return zcamJmhToLinearSrgb(jmh, cond);
+        return zcamJchToLinearSrgb(jch, cond);
     }
 }
 
@@ -941,14 +1117,14 @@ vec3 getColorCielab(float rawLightness, float rawChroma, float hue) {
 }
 
 vec3 getColorZcam(float rawLightness, float rawChroma, float hue) {
-    ZcamViewingConditions cond = createZcamViewingConditions(SURROUND_AVERAGE, 40.0, 20.0, D65 * SRGB_WHITE_LUMINANCE);
+    ZcamViewingConditions cond = getZcamCond();
 
-    vec3 jmh = vec3(rawLightness * 100.0, rawChroma * 170.0, hue);
+    vec3 jch = vec3(rawLightness * 100.0, rawChroma * 170.0, hue);
 
     if (CLIP_ZCAM) {
-        return clipZcamJmhToLinearSrgb(jmh, cond);
+        return clipZcamJchToLinearSrgb(jch, cond);
     } else {
-        return zcamJmhToLinearSrgb(jmh, cond);
+        return zcamJchToLinearSrgb(jch, cond);
     }
 }
 
@@ -966,77 +1142,15 @@ vec3 getLightnessCielab(float rawLightness, float rawChroma, float hue) {
 }
 
 vec3 getLightnessZcam(float rawLightness, float rawChroma, float hue) {
-    ZcamViewingConditions cond = createZcamViewingConditions(SURROUND_AVERAGE, 40.0, 20.0, D65 * SRGB_WHITE_LUMINANCE);
+    ZcamViewingConditions cond = getZcamCond();
 
     vec3 zcam = vec3(rawChroma * 100.0, 0.0, hue);
 
     vec3 xyzAbs = zcamToXyz(zcam, cond);
-    vec3 xyzRel = xyzAbs / SRGB_WHITE_LUMINANCE;
+    vec3 xyzRel = xyzAbs / cond.whiteLuminance;
     return xyzToLinearSrgb(xyzRel);
 }
 
-/*
- * Tone-mapping
- */
-
-// Based on http://www.oscars.org/science-technology/sci-tech-projects/aces
-vec3 aces_tonemap(vec3 color){
-    mat3 m1 = mat3(
-        0.59719, 0.07600, 0.02840,
-        0.35458, 0.90834, 0.13383,
-        0.04823, 0.01566, 0.83777
-    );
-    mat3 m2 = mat3(
-        1.60475, -0.10208, -0.00327,
-        -0.53108,  1.10813, -0.07276,
-        -0.07367, -0.00605,  1.07602
-    );
-    vec3 v = m1 * color;
-    vec3 a = v * (v + 0.0245786) - 0.000090537;
-    vec3 b = v * (0.983729 * v + 0.4329510) + 0.238081;
-    return pow(clamp(m2 * (a / b), 0.0, 1.0), vec3(1.0 / 2.2));
-}
-
-vec3 Tonemap_Aces(vec3 color) {
-
-    // ACES filmic tonemapper with highlight desaturation ("crosstalk").
-    // Based on the curve fit by Krzysztof Narkowicz.
-    // https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
-
-    const float slope = 12.0f; // higher values = slower rise.
-
-    // Store grayscale as an extra channel.
-    vec4 x = vec4(
-    // RGB
-    color.r, color.g, color.b,
-    // Luminosity
-    (color.r * 0.299) + (color.g * 0.587) + (color.b * 0.114)
-    );
-
-    // ACES Tonemapper
-    const float a = 2.51f;
-    const float b = 0.03f;
-    const float c = 2.43f;
-    const float d = 0.59f;
-    const float e = 0.14f;
-
-    vec4 tonemap = clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
-    float t = x.a;
-
-    t = t * t / (slope + t);
-
-    // Return after desaturation step.
-    return mix(tonemap.rgb, tonemap.aaa, t);
-}
-vec3 ACESFilm(vec3 x)
-{
-    float a = 2.51f;
-    float b = 0.03f;
-    float c = 2.43f;
-    float d = 0.59f;
-    float e = 0.14f;
-    return clamp((x*(a*x+b))/(x*(c*x+d)+e), 0.0, 1.0);
-}
 
 /*
  * Main
@@ -1048,6 +1162,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     float rawLightness = uv.y;
     float rawChroma = uv.x;
     float hue = mod(iTime * HUE_RATE, 360.0); // degrees
+    hue = 286.66117416556847;
     vec3 camOut;
 
     // Rainbow
@@ -1073,6 +1188,22 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     // Theme generation
     camOut = getThemeColor(uv, hue);
 
+    // Chroma contrast
+    /*int testSwatch = 3; // neutral1
+    int testShade = 11; // 900
+    testShade = 4; // 200
+    testSwatch = 0; // accent1
+    if (uv.x > 0.5) {
+        ZcamViewingConditions cond = getZcamCond();
+        vec3 xyzAbs = linearSrgbToXyz(srgbTransferInv(rgb8ToFloat(0x533b79))) * cond.whiteLuminance;
+        Zcam seed = xyzToZcam(xyzAbs, cond);
+        camOut = generateShadeZcam(testSwatch, testShade, seed.chroma, seed.hueAngle, 1.0);
+    } else {
+        testSwatch = 3;
+        testShade = 11;
+        camOut = generateShadeZcam(testSwatch, testShade, 0.0, 0.0, 1.0);
+    }*/
+
     // Oklab gamut clipping
     //camOut = gamut_clip_preserve_lightness(camOut);
     //camOut = gamut_clip_project_to_0_5(camOut);
@@ -1080,8 +1211,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     //camOut = gamut_clip_adaptive_L0_0_5(camOut, 0.05);
     //camOut = gamut_clip_adaptive_L0_L_cusp(camOut, 0.05);
 
-    // Simple RGB clipping (also necessary for Oklab clipping)
-    //camOut = aces_tonemap(camOut);
+    // Simple RGB clipping (also necessary after gamut clipping)
     camOut = clamp(camOut, 0.0, 1.0);
 
     if (linearSrgbInGamut(camOut)) {
@@ -1093,4 +1223,10 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
         float digit = PrintValue((fragCoord - vec2(iResolution.x - 80.0, 10.0)) / fontSize, hue, 3.0, 0.0);
         fragColor = vec4(vec3(0.5) + digit, 1.0);
     }
+
+    // Print dynamic sRGB white luminance
+    float whiteL = pow(10.0, (iMouse.x / iResolution.x) * (log(SRGB_WHITE_LUMINANCE_DYN_MAX) / log(10.0)));
+    vec2 fontSize = vec2(16.0, 30.0);
+    float digit2 = PrintValue((fragCoord - vec2(iResolution.x - 80.0, 10.0)) / fontSize, whiteL, 3.0, 0.0);
+    fragColor = vec4(fragColor.rgb + digit2, 1.0);
 }
