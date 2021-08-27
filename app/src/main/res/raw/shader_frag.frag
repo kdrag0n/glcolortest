@@ -1033,7 +1033,9 @@ vec3 generateShadeOklab(int swatch, int shade, float seedChroma, float seedHue, 
 
 ZcamViewingConditions getZcamCond() {
     float whiteLuminance = SRGB_WHITE_LUMINANCE;
-    whiteLuminance = pow(10.0, (iMouse.x / iResolution.x) * (log(SRGB_WHITE_LUMINANCE_DYN_MAX) / log(10.0)));
+
+    // Dynamic luminance for testing
+    //whiteLuminance = pow(10.0, (iMouse.x / iResolution.x) * (log(SRGB_WHITE_LUMINANCE_DYN_MAX) / log(10.0)));
 
     float dynVal1 = (iMouse.x / iResolution.x) * whiteLuminance;
     float dynVal2 = (iMouse.y / iResolution.y) * whiteLuminance;
@@ -1162,7 +1164,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     float rawLightness = uv.y;
     float rawChroma = uv.x;
     float hue = mod(iTime * HUE_RATE, 360.0); // degrees
-    hue = 286.66117416556847;
+    //hue = 286.66117416556847;
     vec3 camOut;
 
     // Rainbow
@@ -1186,7 +1188,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     }*/
 
     // Theme generation
-    camOut = getThemeColor(uv, hue);
+    //camOut = getThemeColor(uv, hue);
 
     // Chroma contrast
     /*int testSwatch = 3; // neutral1
@@ -1225,8 +1227,10 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     }
 
     // Print dynamic sRGB white luminance
+    /*
     float whiteL = pow(10.0, (iMouse.x / iResolution.x) * (log(SRGB_WHITE_LUMINANCE_DYN_MAX) / log(10.0)));
     vec2 fontSize = vec2(16.0, 30.0);
     float digit2 = PrintValue((fragCoord - vec2(iResolution.x - 80.0, 10.0)) / fontSize, whiteL, 3.0, 0.0);
     fragColor = vec4(fragColor.rgb + digit2, 1.0);
+    */
 }
