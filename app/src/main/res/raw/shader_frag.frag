@@ -1155,6 +1155,36 @@ vec3 getLightnessZcam(float rawLightness, float rawChroma, float hue) {
 
 
 /*
+ * Blending
+ */
+
+vec3 blendZcam(vec2 uv, vec3 lhsRgb, vec3 rhsRgb) {
+    ZcamViewingConditions cond = getZcamCond();
+
+    Zcam lhs = xyzToZcam(linearSrgbToXyz(srgbTransferInv(lhsRgb)) * cond.whiteLuminance, cond);
+    Zcam rhs = xyzToZcam(linearSrgbToXyz(srgbTransferInv(rhsRgb)) * cond.whiteLuminance, cond);
+
+    vec3 lhsJch = vec3(lhs.lightness, lhs.chroma, lhs.hueAngle);
+    vec3 rhsJch = vec3(rhs.lightness, rhs.chroma, lhs.hueAngle);
+    return zcamJchToLinearSrgb(mix(lhsJch, rhsJch, uv.x), cond);
+}
+
+vec3 blendLinearSrgb(vec2 uv, vec3 lhsRgb, vec3 rhsRgb) {
+    vec3 lhs = srgbTransferInv(lhsRgb);
+    vec3 rhs = srgbTransferInv(rhsRgb);
+
+    return srgbTransfer(mix(lhs, rhs, uv.x));
+}
+
+vec3 blendSrgb(vec2 uv, vec3 lhsRgb, vec3 rhsRgb) {
+    vec3 lhs = lhsRgb;
+    vec3 rhs = rhsRgb;
+
+    return mix(lhs, rhs, uv.x);
+}
+
+
+/*
  * Main
  */
 
@@ -1205,6 +1235,13 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
         testShade = 11;
         camOut = generateShadeZcam(testSwatch, testShade, 0.0, 0.0, 1.0);
     }*/
+
+    // Blending
+    if (uv.y >= 0.5) {
+        camOut = blendZcam(uv, vec3(1.0, 0.0, 0.0), vec3(1.0, 1.0, 1.0));
+    } else {
+        camOut = blendSrgb(uv, vec3(1.0, 0.0, 0.0), vec3(1.0, 1.0, 1.0));
+    }
 
     // Oklab gamut clipping
     //camOut = gamut_clip_preserve_lightness(camOut);
