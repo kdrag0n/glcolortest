@@ -1234,11 +1234,11 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     }*/
 
     // Blending
-    if (uv.y >= 0.5) {
+    /*if (uv.y >= 0.5) {
         camOut = blendZcam(uv, vec3(1.0, 0.0, 0.0), vec3(1.0, 1.0, 1.0));
     } else {
         camOut = blendSrgb(uv, vec3(1.0, 0.0, 0.0), vec3(1.0, 1.0, 1.0));
-    }
+    }*/
 
     // Oklab gamut clipping
     //camOut = gamut_clip_preserve_lightness(camOut);
