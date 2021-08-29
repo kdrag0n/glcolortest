@@ -1095,9 +1095,9 @@ vec3 getThemeColor(vec2 uv, float hue) {
     }
 
     if (iMouse.z > 0.0) {
-        return generateShadeZcam(swatchIdx, shadeIdx, seedChroma, hue, 1.0);
-    } else {
         return gamut_clip_preserve_lightness(generateShadeOklab(swatchIdx, shadeIdx, seedChroma, hue, 1.0));
+    } else {
+        return generateShadeZcam(swatchIdx, shadeIdx, seedChroma, hue, 1.0);
     }
 }
 
@@ -1209,9 +1209,9 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
 
     // Lightness ramp
     /*if (iMouse.z > 0.0) {
-        camOut = getLightnessZcam(rawLightness, rawChroma, hue);
-    } else {
         camOut = getLightnessOklab(rawLightness, rawChroma, hue);
+    } else {
+        camOut = getLightnessZcam(rawLightness, rawChroma, hue);
     }*/
 
     // Theme generation
