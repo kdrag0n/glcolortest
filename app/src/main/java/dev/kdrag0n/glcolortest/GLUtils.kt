@@ -2,8 +2,10 @@ package dev.kdrag0n.glcolortest
 
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
+import android.graphics.Color
 import android.opengl.GLES31
 import android.util.Half
+import androidx.core.graphics.get
 import java.lang.IllegalStateException
 import java.nio.Buffer
 import java.nio.ByteBuffer
@@ -106,10 +108,10 @@ object GLUtils {
             order(ByteOrder.nativeOrder())
             for (y in (bitmap.height - 1) downTo 0) {
                 for (x in 0 until bitmap.width) {
-                    val color = bitmap.getColor(x, y)
-                    put((color.red() * 255.0).toByte())
-                    put((color.green() * 255.0).toByte())
-                    put((color.blue() * 255.0).toByte())
+                    val color = bitmap[x, y]
+                    put((Color.red(color) * 255.0).toByte())
+                    put((Color.green(color) * 255.0).toByte())
+                    put((Color.blue(color) * 255.0).toByte())
                 }
             }
             position(0)
