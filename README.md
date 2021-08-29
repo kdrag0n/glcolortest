@@ -77,7 +77,7 @@ To enable features and render visualizations other than the default gamut plot, 
 
 ZCAM is on the top and sRGB (non-linear) is on the bottom.
 
-![Blending red with white](https://user-images.githubusercontent.com/7930239/131247050-ce5d5670-496b-4a96-82b4-ca2236394a81.png)
+![Blending red with white](https://user-images.githubusercontent.com/7930239/131247448-115df262-fdd9-4628-88a2-4f3fe864d618.png)
 
 ### Oklab rainbow
 
