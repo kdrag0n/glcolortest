@@ -36,7 +36,8 @@ class TestSurfaceView(
     init {
         holder.setFormat(PixelFormat.RGBA_F16)
         setEGLContextClientVersion(3)
-        setEGLWindowSurfaceFactory(this)
+        // WCG
+        //setEGLWindowSurfaceFactory(this)
         setRenderer(this)
     }
 
@@ -76,7 +77,6 @@ class TestSurfaceView(
 
     override fun createWindowSurface(egl: EGL10, display: EGLDisplay, config: EGLConfig, nativeWindow: Any): EGLSurface =
         egl.eglCreateWindowSurface(display, config, nativeWindow, intArrayOf(
-            //
             EGL15.EGL_GL_COLORSPACE, 0x3490, // Display-P3 passthrough
             EGL14.EGL_NONE,
         ))
