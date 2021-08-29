@@ -21,11 +21,11 @@ See [shader_frag.frag](https://github.com/kdrag0n/glcolortest/blob/main/app/src/
   - Relative luminance
   - Absolute luminance in nits (cd/m²) for HDR color spaces
 - Lab to LCh (lightness, chroma, hue) transformation
-- Gamut shape and cusp visualization
-- Material You color palette generation with time-varying hue
-- Color gradient blending
+- [Gamut shape and cusp visualization](https://www.shadertoy.com/view/fsd3R2)
+- [Material You color palette generation with time-varying hue](https://www.shadertoy.com/view/fstGz2)
+- [Color gradient blending](https://www.shadertoy.com/view/NdtGz2)
 - Comparing chromatic colors to neutral colors of the same lightness
-- Neutral gray lightness ramp
+- [Neutral gray lightness ramp](https://www.shadertoy.com/view/Nsd3R2)
 - Rainbow hue gradient
 - Dynamic CAM viewing conditions
 - Device color spaces with wide color gamuts
