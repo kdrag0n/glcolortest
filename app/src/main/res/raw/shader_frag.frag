@@ -1166,7 +1166,7 @@ vec3 blendZcam(vec2 uv, vec3 lhsRgb, vec3 rhsRgb) {
 
     vec3 lhsJch = vec3(lhs.lightness, lhs.chroma, lhs.hueAngle);
     vec3 rhsJch = vec3(rhs.lightness, rhs.chroma, lhs.hueAngle);
-    return zcamJchToLinearSrgb(mix(lhsJch, rhsJch, uv.x), cond);
+    return clipZcamJchToLinearSrgb(mix(lhsJch, rhsJch, uv.x), cond);
 }
 
 vec3 blendLinearSrgb(vec2 uv, vec3 lhsRgb, vec3 rhsRgb) {
