@@ -1177,10 +1177,7 @@ vec3 blendLinearSrgb(vec2 uv, vec3 lhsRgb, vec3 rhsRgb) {
 }
 
 vec3 blendSrgb(vec2 uv, vec3 lhsRgb, vec3 rhsRgb) {
-    vec3 lhs = lhsRgb;
-    vec3 rhs = rhsRgb;
-
-    return mix(lhs, rhs, uv.x);
+    return mix(lhsRgb, rhsRgb, uv.x);
 }
 
 
