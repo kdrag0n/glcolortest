@@ -877,7 +877,7 @@ vec3 zcamJchToLinearSrgb(vec3 jch, ZcamViewingConditions cond) {
 }
 
 const float ZCAM_CHROMA_EPSILON = 0.0001;
-const bool CLIP_ZCAM = true; // warning: can crash GPU!
+const bool CLIP_ZCAM = false;
 vec3 clipZcamJchToLinearSrgb(vec3 jch, ZcamViewingConditions cond) {
     vec3 initialResult = zcamJchToLinearSrgb(jch, cond);
     if (linearSrgbInGamut(initialResult)) {
@@ -1007,7 +1007,7 @@ const float SWATCH_CHROMA_SCALES[5] = float[](
     1.0, // accent1
     1.0 / 3.0, // accent2
     (1.0 / 3.0) * 2.0, // accent3
-    1.0 / 7.0, // neutral1
+    1.0 / 8.0, // neutral1
     1.0 / 5.0 // neutral2
 );
 
@@ -1066,7 +1066,7 @@ vec3 generateShadeZcam(int swatch, int shade, float seedChroma, float seedHue, f
         Zcam zcam = xyzToZcam(xyzAbs, cond);
         chromaAcc += zcam.chroma;
     }
-    float avgChroma = chromaAcc / float(REF_ACCENT1_COLOR_COUNT);
+    float avgChroma = 1.2 * chromaAcc / float(REF_ACCENT1_COLOR_COUNT);
 
     // For constant values
     //lightness = ZCAM_LIGHTNESS_MAP[shade];
@@ -1202,7 +1202,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     // Gamut/cusp animation
     if (iMouse.z > 0.0) {
         camOut = getColorOklab(rawLightness, rawChroma, hue);
-        camOut = gamut_clip_preserve_lightness(camOut);
+        //camOut = gamut_clip_preserve_lightness(camOut);
     } else {
         camOut = getColorZcam(rawLightness, rawChroma, hue);
     }
@@ -1248,7 +1248,7 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     //camOut = gamut_clip_adaptive_L0_L_cusp(camOut, 0.05);
 
     // Simple RGB clipping (also necessary after gamut clipping)
-    camOut = clamp(camOut, 0.0, 1.0);
+    //camOut = clamp(camOut, 0.0, 1.0);
 
     if (linearSrgbInGamut(camOut)) {
         vec3 dither = texture(iChannel0, uv * (iResolution.xy / 64.0)).rgb * 2.0 - 1.0;
