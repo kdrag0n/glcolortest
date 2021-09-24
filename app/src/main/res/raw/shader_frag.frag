@@ -1313,6 +1313,25 @@ vec3 blendZcam(vec2 uv, vec3 lhsRgb, vec3 rhsRgb) {
     return clipZcamJchToLinearSrgb(mix(lhsJch, rhsJch, uv.x), cond);
 }
 
+vec3 blendOklch(vec2 uv, vec3 lhsRgb, vec3 rhsRgb) {
+    vec3 lhs = labToLch(linearSrgbToOklab(srgbTransferInv(lhsRgb)));
+    vec3 rhs = labToLch(linearSrgbToOklab(srgbTransferInv(rhsRgb)));
+    rhs.z = lhs.z;
+    return clipOklchToLinearSrgb(mix(lhs, rhs, uv.x));
+}
+
+vec3 blendOklab(vec2 uv, vec3 lhsRgb, vec3 rhsRgb) {
+    vec3 lhs = linearSrgbToOklab(srgbTransferInv(lhsRgb));
+    vec3 rhs = linearSrgbToOklab(srgbTransferInv(rhsRgb));
+    return oklabToLinearSrgb(mix(lhs, rhs, uv.x));
+}
+
+vec3 blendOklrab(vec2 uv, vec3 lhsRgb, vec3 rhsRgb) {
+    vec3 lhs = linearSrgbToOklrab(srgbTransferInv(lhsRgb));
+    vec3 rhs = linearSrgbToOklrab(srgbTransferInv(rhsRgb));
+    return oklrabToLinearSrgb(mix(lhs, rhs, uv.x));
+}
+
 vec3 blendLinearSrgb(vec2 uv, vec3 lhsRgb, vec3 rhsRgb) {
     vec3 lhs = srgbTransferInv(lhsRgb);
     vec3 rhs = srgbTransferInv(rhsRgb);
