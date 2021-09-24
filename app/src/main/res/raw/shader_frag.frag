@@ -1500,6 +1500,26 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     }
     }*/
 
+    // Hue ring - ZCAM
+    /*vec2 center = 0.5 * iResolution.xy;
+    vec2 cDistance = fragCoord - center;
+    hue = radiansToDegrees(atan2(cDistance.y, cDistance.x));
+    ZcamViewingConditions cond = getZcamCond();
+    vec3 xyzAbs = linearSrgbToXyz(vec3(0.0, 0.0, 1.0)) * cond.whiteLuminance;
+    Zcam blue = xyzToZcam(xyzAbs, cond);
+    blue.hueAngle = hue;
+    blue.lightness = 73.0;
+    //blue.lightness = (cos(iTime / 2.0) + 1.0) * 50.0;
+    float chroma = 12.0;
+    float rDistance = distance(center, fragCoord);
+    if (rDistance <= 400.0 && rDistance >= 250.0) {
+        camOut = clipZcamJchToLinearSrgb(vec3(blue.lightness, chroma, hue), cond);
+        //camOut = zcamJchToLinearSrgb(vec3(blue.lightness, chroma, hue), cond);
+    } else {
+        camOut = vec3(1.0);
+        //camOut = zcamJchToLinearSrgb(vec3(blue.lightness, 0.0, 0.0), cond);
+    }*/
+
     // Oklab gamut clipping
     //camOut = gamut_clip_preserve_lightness(camOut);
     //camOut = gamut_clip_project_to_0_5(camOut);
