@@ -1275,6 +1275,12 @@ vec3 getLightnessOklab(float rawLightness, float rawChroma, float hue) {
     return oklabToLinearSrgb(oklab);
 }
 
+vec3 getLightnessOklrab(float rawLightness, float rawChroma, float hue) {
+    vec3 lch = vec3(rawChroma, 0.0, hue);
+    vec3 oklrab = lchToLab(lch);
+    return oklrabToLinearSrgb(oklrab);
+}
+
 vec3 getLightnessCielab(float rawLightness, float rawChroma, float hue) {
     vec3 lch = vec3(rawChroma * 100.0, 0.0, hue);
     vec3 cielab = lchToLab(lch);
