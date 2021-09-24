@@ -1527,6 +1527,13 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
         camOut = chromaHueSweepZcam(uv);
     }*/
 
+    // Blending red with blue
+    /*if (uv.y >= 0.5) {
+        camOut = blendOklab(uv, vec3(1.0, 0.0, 0.0), vec3(0.0, 0.0, 1.0));
+    } else {
+        camOut = blendOklrab(uv, vec3(1.0, 0.0, 0.0), vec3(0.0, 0.0, 1.0));
+    }*/
+
     // Oklab gamut clipping
     //camOut = gamut_clip_preserve_lightness(camOut);
     //camOut = gamut_clip_project_to_0_5(camOut);
