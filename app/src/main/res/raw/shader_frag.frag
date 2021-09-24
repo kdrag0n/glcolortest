@@ -883,6 +883,7 @@ Zcam xyzToZcam(vec3 c, ZcamViewingConditions cond) {
 vec3 zcamToXyz(vec3 c, ZcamViewingConditions cond) {
     float Jz = c.x;
     float Cz = c.y;
+    //float Sz = c.y;
     float hz = c.z;
 
     float Iz_w = cond.refWhiteIz;
@@ -897,6 +898,8 @@ vec3 zcamToXyz(vec3 c, ZcamViewingConditions cond) {
     /* Step 2 */
     // Chroma
     /* skipped because we take Cz as input */
+    //float Qz = (Jz / 100.0) * Qz_w;
+    //float Cz = (Qz * square(Sz)) / (100.0 * Qz_w * pow(cond.F_l, 1.2));
 
     /* Step 3 is missing because hue composition is not supported */
 
