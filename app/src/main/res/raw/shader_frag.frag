@@ -292,6 +292,10 @@ vec3 cielabToXyz(vec3 c) {
  * Oklab
  */
 
+const float LR_K1 = 0.206;
+const float LR_K2 = 0.03;
+const float LR_K3 = (1.0 + LR_K1) / (1.0 + LR_K2);
+
 vec3 xyzToOklab(vec3 c) {
     float l = 0.8189330101 * c.x + 0.3618667424 * c.y - 0.1288597137 * c.z;
     float m = 0.0329845436 * c.x + 0.9293118715 * c.y + 0.0361456387 * c.z;
@@ -301,11 +305,11 @@ vec3 xyzToOklab(vec3 c) {
     float m_ = cbrt(m);
     float s_ = cbrt(s);
 
-    return vec3(
-        0.2104542553f*l_ + 0.7936177850f*m_ - 0.0040720468f*s_,
-        1.9779984951f*l_ - 2.4285922050f*m_ + 0.4505937099f*s_,
-        0.0259040371f*l_ + 0.7827717662f*m_ - 0.8086757660f*s_
-    );
+    float L = 0.2104542553f*l_ + 0.7936177850f*m_ - 0.0040720468f*s_;
+    float a = 1.9779984951f*l_ - 2.4285922050f*m_ + 0.4505937099f*s_;
+    float b = 0.0259040371f*l_ + 0.7827717662f*m_ - 0.8086757660f*s_;
+
+    return vec3(L, a, b);
 }
 
 vec3 oklabToXyz(vec3 c) {
@@ -334,6 +338,59 @@ vec3 linearSrgbToOklab(vec3 c) {
 
 vec3 oklabToLinearSrgb(vec3 c) {
     return xyzToLinearSrgb(oklabToXyz(c));
+}
+
+
+/*
+ * OkLrab
+ */
+
+vec3 xyzToOklrab(vec3 c) {
+    float l = 0.8189330101 * c.x + 0.3618667424 * c.y - 0.1288597137 * c.z;
+    float m = 0.0329845436 * c.x + 0.9293118715 * c.y + 0.0361456387 * c.z;
+    float s = 0.0482003018 * c.x + 0.2643662691 * c.y + 0.6338517070 * c.z;
+
+    float l_ = cbrt(l);
+    float m_ = cbrt(m);
+    float s_ = cbrt(s);
+
+    float L = 0.2104542553f*l_ + 0.7936177850f*m_ - 0.0040720468f*s_;
+    float a = 1.9779984951f*l_ - 2.4285922050f*m_ + 0.4505937099f*s_;
+    float b = 0.0259040371f*l_ + 0.7827717662f*m_ - 0.8086757660f*s_;
+
+    float Lr = (LR_K3*L - LR_K1 + sqrt(square(LR_K3*L - LR_K1) + 4.0*LR_K2*LR_K3*L)) / 2.0;
+
+    return vec3(Lr, a, b);
+}
+
+vec3 oklrabToXyz(vec3 c) {
+    float Lr = c.x;
+    float a = c.y;
+    float b = c.z;
+
+    float L = (Lr * (Lr + LR_K1)) / (LR_K3 * (Lr + LR_K2));
+
+    float l_ = L + 0.3963377774f * a + 0.2158037573f * b;
+    float m_ = L - 0.1055613458f * a - 0.0638541728f * b;
+    float s_ = L - 0.0894841775f * a - 1.2914855480f * b;
+
+    float l = l_*l_*l_;
+    float m = m_*m_*m_;
+    float s = s_*s_*s_;
+
+    return vec3(
+        +1.2270138511 * l - 0.5577999807 * m + 0.2812561490 * s,
+        -0.0405801784 * l + 1.1122568696 * m - 0.0716766787 * s,
+        -0.0763812845 * l - 0.4214819784 * m + 1.5861632204 * s
+    );
+}
+
+vec3 linearSrgbToOklrab(vec3 c) {
+    return xyzToOklrab(linearSrgbToXyz(c));
+}
+
+vec3 oklrabToLinearSrgb(vec3 c) {
+    return xyzToLinearSrgb(oklrabToXyz(c));
 }
 
 
