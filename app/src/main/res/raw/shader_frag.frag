@@ -977,6 +977,84 @@ vec3 clipZcamJchToLinearSrgb(vec3 jch, ZcamViewingConditions cond) {
 
     return newLinearSrgb;
 }
+vec3 clipCielchToLinearSrgb(vec3 lch) {
+    vec3 initialResult = xyzToLinearSrgb(cielabToXyz(lchToLab(lch)));
+    if (linearSrgbInGamut(initialResult)) {
+        return initialResult;
+    }
+
+    float lightness = lch.r;
+    float chroma = lch.g;
+    float hue = lch.b;
+    if (lightness <= ZCAM_CHROMA_EPSILON) {
+        return vec3(0.0);
+    } else if (lightness >= 100.0 - ZCAM_CHROMA_EPSILON) {
+        return vec3(1.0);
+    }
+
+    float lo = 0.0;
+    float hi = chroma;
+
+    vec3 newLinearSrgb = initialResult;
+    while (abs(hi - lo) > ZCAM_CHROMA_EPSILON) {
+        float mid = (lo + hi) / 2.0;
+
+        newLinearSrgb = xyzToLinearSrgb(cielabToXyz(lchToLab(vec3(lightness, mid, hue))));
+        if (!linearSrgbInGamut(newLinearSrgb)) {
+            hi = mid;
+        } else {
+            float mid2 = mid + ZCAM_CHROMA_EPSILON;
+
+            vec3 newLinearSrgb2 = xyzToLinearSrgb(cielabToXyz(lchToLab(vec3(lightness, mid2, hue))));
+            if (linearSrgbInGamut(newLinearSrgb2)) {
+                lo = mid;
+            } else {
+                break;
+            }
+        }
+    }
+
+    return newLinearSrgb;
+}
+vec3 clipOklchToLinearSrgb(vec3 lch) {
+    vec3 initialResult = oklabToLinearSrgb(lchToLab(lch));
+    if (linearSrgbInGamut(initialResult)) {
+        return initialResult;
+    }
+
+    float lightness = lch.r;
+    float chroma = lch.g;
+    float hue = lch.b;
+    if (lightness <= ZCAM_CHROMA_EPSILON) {
+        return vec3(0.0);
+    } else if (lightness >= 100.0 - ZCAM_CHROMA_EPSILON) {
+        return vec3(1.0);
+    }
+
+    float lo = 0.0;
+    float hi = chroma;
+
+    vec3 newLinearSrgb = initialResult;
+    while (abs(hi - lo) > ZCAM_CHROMA_EPSILON) {
+        float mid = (lo + hi) / 2.0;
+
+        newLinearSrgb = oklabToLinearSrgb(lchToLab(vec3(lightness, mid, hue)));
+        if (!linearSrgbInGamut(newLinearSrgb)) {
+            hi = mid;
+        } else {
+            float mid2 = mid + ZCAM_CHROMA_EPSILON;
+
+            vec3 newLinearSrgb2 = oklabToLinearSrgb(lchToLab(vec3(lightness, mid2, hue)));
+            if (linearSrgbInGamut(newLinearSrgb2)) {
+                lo = mid;
+            } else {
+                break;
+            }
+        }
+    }
+
+    return newLinearSrgb;
+}
 
 
 /*
