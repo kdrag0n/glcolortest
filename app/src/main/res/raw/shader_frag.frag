@@ -1435,6 +1435,71 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
         camOut = blendSrgb(uv, vec3(1.0, 0.0, 0.0), vec3(1.0, 1.0, 1.0));
     }*/
 
+    // Blue demo - ZCAM
+    ZcamViewingConditions cond = getZcamCond();
+    vec3 xyzAbs = linearSrgbToXyz(vec3(0.0, 0.0, 1.0)) * cond.whiteLuminance;
+    Zcam blue = xyzToZcam(xyzAbs, cond);
+    //blue.hueAngle = hue;
+    //blue.hueAngle = 33.44; // red
+    //blue.hueAngle = 89.29; // yellow
+    //blue.hueAngle = 146.30; // green
+    //blue.hueAngle = 238.36; // blue
+    if (uv.y >= 0.0) {
+        camOut = clipZcamJchToLinearSrgb(vec3(uv.x * 100.0, blue.chroma, blue.hueAngle), cond);
+    }
+    if (uv.y >= 1.0/3.0) {
+        camOut = clipZcamJchToLinearSrgb(vec3(blue.lightness, uv.x * blue.chroma, blue.hueAngle), cond);
+    }
+    if (uv.y >= 2.0/3.0) {
+        float hue = uv.x * 360.0;
+        float chroma = (abs(hue - blue.hueAngle) < 0.5) ? blue.chroma : 10.0;
+        camOut = clipZcamJchToLinearSrgb(vec3(blue.lightness, chroma, hue), cond);
+    }
+    if (uv.y >= 4.0/6.0 && uv.y <= 5.0/6.0) {
+        float hue = uv.x * 360.0;
+        camOut = clipZcamJchToLinearSrgb(vec3(blue.lightness, 500.0, hue), cond);
+    }
+
+    // Blue demo - CIELAB
+    /*vec3 blue = labToLch(xyzToCielab(linearSrgbToXyz(vec3(0.0, 0.0, 1.0))));
+    if (uv.y >= 0.0) {
+        camOut = clipCielchToLinearSrgb(vec3(uv.x * 100.0, blue.y, blue.z));
+    }
+    if (uv.y >= 1.0/3.0) {
+        camOut = clipCielchToLinearSrgb(vec3(blue.x, uv.x * blue.y, blue.z));
+    }
+    if (uv.y >= 2.0/3.0) {
+        float hue = uv.x * 360.0;
+        float chroma = (abs(hue - blue.z) < 0.5) ? blue.y : 21.0;
+        camOut = clipCielchToLinearSrgb(vec3(blue.x, chroma, hue));
+    }
+    if (uv.y >= 4.0/6.0 && uv.y <= 5.0/6.0) {
+        float hue = uv.x * 360.0;
+        camOut = clipCielchToLinearSrgb(vec3(blue.x, 500.0, hue));
+    }*/
+
+    // Blue demo - Oklab
+    /*if (iMouse.z > 0.0) {
+    vec3 blue = labToLch(linearSrgbToOklab(vec3(0.0, 0.0, 1.0)));
+    //blue.z = hue;
+    if (uv.y >= 0.0) {
+        camOut = clipOklchToLinearSrgb(vec3(uv.x, blue.y, blue.z));
+    }
+    if (uv.y >= 1.0/3.0) {
+        camOut = clipOklchToLinearSrgb(vec3(blue.x, uv.x * blue.y, blue.z));
+    }
+    if (uv.y >= 2.0/3.0) {
+        float hue = uv.x * 360.0;
+        float chroma = (abs(hue - blue.z) < 0.5) ? blue.y : 0.07;
+        camOut = clipOklchToLinearSrgb(vec3(blue.x, chroma, hue));
+        //camOut = oklabToLinearSrgb(lchToLab(vec3(blue.x, chroma, hue)));
+    }
+    if (uv.y >= 4.0/6.0 && uv.y <= 5.0/6.0) {
+        float hue = uv.x * 360.0;
+        camOut = clipOklchToLinearSrgb(vec3(blue.x, 500.0, hue));
+    }
+    }*/
+
     // Oklab gamut clipping
     //camOut = gamut_clip_preserve_lightness(camOut);
     //camOut = gamut_clip_project_to_0_5(camOut);
