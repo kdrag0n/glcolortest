@@ -1520,6 +1520,13 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
         //camOut = zcamJchToLinearSrgb(vec3(blue.lightness, 0.0, 0.0), cond);
     }*/
 
+    // Chroma/hue sweep
+    /*if (iMouse.z > 0.0) {
+        camOut = chromaHueSweepOklab(uv);
+    } else {
+        camOut = chromaHueSweepZcam(uv);
+    }*/
+
     // Oklab gamut clipping
     //camOut = gamut_clip_preserve_lightness(camOut);
     //camOut = gamut_clip_project_to_0_5(camOut);
