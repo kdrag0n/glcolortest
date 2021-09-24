@@ -1559,6 +1559,8 @@ void mainImage(out vec4 fragColor, in vec2 fragCoord) {
     float whiteL = pow(10.0, (iMouse.x / iResolution.x) * (log(SRGB_WHITE_LUMINANCE_DYN_MAX) / log(10.0)));
     vec2 fontSize = vec2(16.0, 30.0);
     float digit2 = PrintValue((fragCoord - vec2(iResolution.x - 80.0, 10.0)) / fontSize, whiteL, 3.0, 0.0);
-    fragColor = vec4(fragColor.rgb + digit2, 1.0);
+    if (digit2 > 0.001) {
+        fragColor = vec4(1.0, 0.0, 0.0, 1.0);
+    }
     */
 }
