@@ -1345,6 +1345,38 @@ vec3 blendSrgb(vec2 uv, vec3 lhsRgb, vec3 rhsRgb) {
 
 
 /*
+ * Chroma/hue sweep
+ */
+
+vec3 chromaHueSweepZcam(vec2 uv) {
+    ZcamViewingConditions cond = getZcamCond();
+
+    float lightness = uv.y * 100.0;
+    float chroma = 1000.0;
+    float hue = uv.x * 360.0;
+
+    return clipZcamJchToLinearSrgb(vec3(lightness, chroma, hue), cond);
+}
+
+vec3 chromaHueSweepOklab(vec2 uv) {
+    float lightness = uv.y;
+    float chroma = 1000.0;
+    float hue = uv.x * 360.0;
+
+    return clipOklchToLinearSrgb(vec3(lightness, chroma, hue));
+}
+
+vec3 chromaHueSweepCielab(vec2 uv) {
+    float lightness = uv.y * 100.0;
+    float chroma = 1000.0;
+    float hue = uv.x * 360.0;
+
+    return clipCielchToLinearSrgb(vec3(lightness, chroma, hue));
+}
+
+
+
+/*
  * Main
  */
 
